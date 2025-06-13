@@ -1,0 +1,267 @@
+{% extends 'progress/base.html' %}
+
+{% block title %}進捗記録{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">今日の進捗記録</h1>
+                <p class="mt-1 text-sm text-gray-600">学習内容と感想を記録して、継続的な成長を追跡しましょう。</p>
+            </div>
+
+            <form method="post" class="space-y-8">
+                {% csrf_token %}
+                
+                <!-- 現在のステップ・進捗状況 -->
+                <div class="border-b border-gray-200 pb-8">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">🎯 現在のステップ・進捗状況</h3>
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <label for="{{ form.current_phase.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.current_phase.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.current_phase }}
+                            {% if form.current_phase.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.current_phase.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.current_item.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.current_item.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.current_item }}
+                            {% if form.current_item.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.current_item.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label for="{{ form.progress_detail.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.progress_detail.label }}
+                        </label>
+                        {{ form.progress_detail }}
+                        {% if form.progress_detail.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.progress_detail.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 勉強時間 -->
+                <div class="border-b border-gray-200 pb-8">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">⏰ 勉強時間</h3>
+                    <div>
+                        <label for="{{ form.study_hours.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.study_hours.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.study_hours }}
+                        <p class="mt-1 text-sm text-gray-500">0.5時間単位で入力してください（例: 2.5）</p>
+                        {% if form.study_hours.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.study_hours.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 詰まったポイント + Slack連携 -->
+                <div class="border-b border-gray-200 pb-8">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">🤔 詰まったポイント + Slack連携</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="{{ form.stuck_content.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.stuck_content.label }}
+                            </label>
+                            {{ form.stuck_content }}
+                            {% if form.stuck_content.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.stuck_content.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex items-center">
+                            {{ form.feedback_requested }}
+                            <label for="{{ form.feedback_requested.id_for_label }}" class="ml-2 block text-sm text-gray-900">
+                                {{ form.feedback_requested.label }}（チェック時、Slackに自動送信されます）
+                            </label>
+                        </div>
+                        
+                        <div id="feedback-details" class="space-y-4" style="display: none;">
+                            <div>
+                                <label for="{{ form.problem_detail.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.problem_detail.label }} <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.problem_detail }}
+                                {% if form.problem_detail.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.problem_detail.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <label for="{{ form.tried_solutions.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.tried_solutions.label }} <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.tried_solutions }}
+                                {% if form.tried_solutions.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.tried_solutions.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 振り返り・反省点 -->
+                <div class="border-b border-gray-200 pb-8">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">💭 振り返り・反省点</h3>
+                    <div>
+                        <label for="{{ form.reflection.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.reflection.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.reflection }}
+                        {% if form.reflection.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.reflection.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 次回目標 -->
+                <div class="border-b border-gray-200 pb-8">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">🎯 次回目標</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="{{ form.next_goal.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.next_goal.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.next_goal }}
+                            {% if form.next_goal.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.next_goal.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                                <label for="{{ form.next_phase.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.next_phase.label }}
+                                </label>
+                                {{ form.next_phase }}
+                                {% if form.next_phase.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.next_phase.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <label for="{{ form.next_item.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.next_item.label }}
+                                </label>
+                                {{ form.next_item }}
+                                {% if form.next_item.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.next_item.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.planned_hours.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.planned_hours.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.planned_hours }}
+                            {% if form.planned_hours.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.planned_hours.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 行動計画 -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">📋 行動計画</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="{{ form.action_plan.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.action_plan.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.action_plan }}
+                            {% if form.action_plan.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.action_plan.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <h4 class="text-sm font-medium text-gray-700">チェック項目:</h4>
+                            <div class="space-y-2">
+                                <label class="inline-flex items-center">
+                                    {{ form.need_review }}
+                                    <span class="ml-2 text-sm text-gray-700">{{ form.need_review.label }}</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    {{ form.have_question }}
+                                    <span class="ml-2 text-sm text-gray-700">{{ form.have_question.label }}</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    {{ form.next_phase_ready }}
+                                    <span class="ml-2 text-sm text-gray-700">{{ form.next_phase_ready.label }}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 送信ボタン -->
+                <div class="pt-6 border-t border-gray-200">
+                    <div class="flex justify-end space-x-3">
+                        <a href="{% url 'student_dashboard' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            キャンセル
+                        </a>
+                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            進捗を記録
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // フィードバック希望チェックボックスの制御
+    document.addEventListener('DOMContentLoaded', function() {
+        const feedbackCheckbox = document.getElementById('{{ form.feedback_requested.id_for_label }}');
+        const feedbackDetails = document.getElementById('feedback-details');
+        
+        function toggleFeedbackDetails() {
+            if (feedbackCheckbox.checked) {
+                feedbackDetails.style.display = 'block';
+            } else {
+                feedbackDetails.style.display = 'none';
+            }
+        }
+        
+        feedbackCheckbox.addEventListener('change', toggleFeedbackDetails);
+        toggleFeedbackDetails(); // 初期状態を設定
+        
+        // Phase選択時に項目を動的に更新
+        const currentPhaseSelect = document.getElementById('{{ form.current_phase.id_for_label }}');
+        const currentItemSelect = document.getElementById('{{ form.current_item.id_for_label }}');
+        const nextPhaseSelect = document.getElementById('{{ form.next_phase.id_for_label }}');
+        const nextItemSelect = document.getElementById('{{ form.next_item.id_for_label }}');
+        
+        function updateItems(phaseSelect, itemSelect) {
+            const phaseId = phaseSelect.value;
+            if (phaseId) {
+                // TODO: AJAX call to get items for selected phase
+                // This would require a separate view/endpoint
+            }
+        }
+        
+        if (currentPhaseSelect) {
+            currentPhaseSelect.addEventListener('change', function() {
+                updateItems(currentPhaseSelect, currentItemSelect);
+            });
+        }
+        
+        if (nextPhaseSelect) {
+            nextPhaseSelect.addEventListener('change', function() {
+                updateItems(nextPhaseSelect, nextItemSelect);
+            });
+        }
+    });
+</script>
+{% endblock %}

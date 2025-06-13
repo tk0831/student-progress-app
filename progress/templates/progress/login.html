@@ -1,0 +1,65 @@
+{% extends 'progress/base.html' %}
+
+{% block title %}ログイン - 研修生進捗確認アプリ{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <div class="mx-auto h-12 w-12 text-center">
+                <span class="text-4xl">📚</span>
+            </div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                研修進捗管理システム
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                Nexterカリキュラム進捗確認アプリ
+            </p>
+        </div>
+        
+        <form class="mt-8 space-y-6" method="post">
+            {% csrf_token %}
+            <div class="rounded-md shadow-sm space-y-4">
+                <div>
+                    <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.username.label }}
+                    </label>
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.username.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.password.label }}
+                    </label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.password.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <svg class="h-5 w-5 text-blue-300 group-hover:text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                        </svg>
+                    </span>
+                    ログイン
+                </button>
+            </div>
+            
+            <div class="text-center">
+                <div class="text-sm text-gray-600">
+                    <p class="mb-2"><strong>テストアカウント:</strong></p>
+                    <p>管理者: admin / admin123</p>
+                    <p>研修生: （管理者が作成）</p>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

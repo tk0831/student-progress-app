@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}研修生進捗確認アプリ{% endblock %}</title>
+    
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- TailwindCSS設定 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'grade-s': '#FFD700',  // プラチナゴールド
+                        'grade-a': '#FFA500',  // ゴールド
+                        'grade-b': '#C0C0C0',  // シルバー
+                        'grade-c': '#CD7F32',  // ブロンズ
+                        'grade-d': '#808080',  // グレー
+                        'primary': '#3B82F6',
+                        'secondary': '#1F2937',
+                    },
+                    animation: {
+                        'grade-glow': 'glow 2s ease-in-out infinite alternate',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- カスタムCSS -->
+    <style>
+        @keyframes glow {
+            from { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+            to { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+        }
+        .grade-s { background: linear-gradient(45deg, #FFD700, #FFA500); }
+        .grade-a { background: linear-gradient(45deg, #FFA500, #FF8C00); }
+        .grade-b { background: linear-gradient(45deg, #C0C0C0, #A0A0A0); }
+        .grade-c { background: linear-gradient(45deg, #CD7F32, #B8860B); }
+        .grade-d { background: linear-gradient(45deg, #808080, #696969); }
+    </style>
+    
+    {% load static %}
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- ナビゲーションバー -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-800">
+                            {% if user.user_type == 'admin' %}
+                                管理者ダッシュボード
+                            {% else %}
+                                研修進捗アプリ
+                            {% endif %}
+                        </h1>
+                    </div>
+                    
+                    {% if user.is_authenticated %}
+                        <div class="hidden md:block ml-10">
+                            <div class="flex items-baseline space-x-4">
+                                {% if user.user_type == 'student' %}
+                                    <a href="{% url 'student_dashboard' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">ダッシュボード</a>
+                                    <a href="{% url 'progress_create' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">進捗記録</a>
+                                    <a href="{% url 'progress_list' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">記録履歴</a>
+                                    <a href="{% url 'group_ranking' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">ランキング</a>
+                                {% else %}
+                                    <a href="{% url 'admin_dashboard' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">ダッシュボード</a>
+                                    <a href="{% url 'progress_list' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">全進捗一覧</a>
+                                    <a href="{% url 'group_ranking' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">グループ分析</a>
+                                    <a href="/admin/" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">管理画面</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                {% if user.is_authenticated %}
+                    <div class="flex items-center space-x-4">
+                        <!-- ユーザー情報 -->
+                        <div class="text-sm text-gray-600">
+                            <span class="font-medium">{{ user.username }}</span>
+                            {% if user.user_type == 'student' and user.stats %}
+                                <span class="ml-2 px-2 py-1 text-xs rounded-full {% if user.stats.current_grade == 'S' %}grade-s text-white{% elif user.stats.current_grade == 'A' %}grade-a text-white{% elif user.stats.current_grade == 'B' %}grade-b text-white{% elif user.stats.current_grade == 'C' %}grade-c text-white{% else %}grade-d text-white{% endif %}">
+                                    {{ user.stats.get_current_grade_display }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- ログアウト -->
+                        <a href="{% url 'logout' %}" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
+                            ログアウト
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- メインコンテンツ -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- メッセージ表示 -->
+        {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} mb-3 p-4 rounded-md {% if message.tags == 'error' %}bg-red-100 border border-red-400 text-red-700{% elif message.tags == 'success' %}bg-green-100 border border-green-400 text-green-700{% elif message.tags == 'warning' %}bg-yellow-100 border border-yellow-400 text-yellow-700{% else %}bg-blue-100 border border-blue-400 text-blue-700{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- ページコンテンツ -->
+        <div class="px-4 py-6 sm:px-0">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- フッター -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+            <div class="text-center text-sm text-gray-500">
+                © 2024 研修生進捗確認アプリ - Nexterカリキュラム管理システム
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // フォーム送信時の確認
+        document.addEventListener('DOMContentLoaded', function() {
+            const forms = document.querySelectorAll('form[data-confirm]');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    if (!confirm(this.dataset.confirm)) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+
+        // 階級エフェクト
+        document.addEventListener('DOMContentLoaded', function() {
+            const gradeElements = document.querySelectorAll('.grade-s');
+            gradeElements.forEach(el => {
+                el.classList.add('animate-grade-glow');
+            });
+        });
+    </script>
+
+    {% block extra_js %}
+    {% endblock %}
+</body>
+</html>

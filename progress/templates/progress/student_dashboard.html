@@ -1,0 +1,196 @@
+{% extends 'progress/base.html' %}
+
+{% block title %}研修生ダッシュボード{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- ヘッダー -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">こんにちは、{{ user.username }}さん</h1>
+                    <p class="mt-1 text-sm text-gray-600">
+                        {% if user.group %}{{ user.group.name }}{% endif %}
+                        {% if user.start_date %} | 研修開始日: {{ user.start_date }}{% endif %}
+                    </p>
+                </div>
+                <div class="text-right">
+                    <a href="{% url 'progress_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        今日の進捗を記録
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 統計サマリー -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- 現在の階級 -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 rounded-full {% if user_stats.current_grade == 'S' %}grade-s{% elif user_stats.current_grade == 'A' %}grade-a{% elif user_stats.current_grade == 'B' %}grade-b{% elif user_stats.current_grade == 'C' %}grade-c{% else %}grade-d{% endif %} flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">{{ user_stats.current_grade|default:'A' }}</span>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">現在の階級</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ user_stats.get_current_grade_display|default:'A級' }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 経過日数 -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">経過日数</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ user_stats.days_elapsed|default:0 }}日</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 累計学習時間 -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">累計学習時間</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ user_stats.total_study_hours|default:0 }}時間</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 完了率 -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">完了率</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ user_stats.completion_rate|default:0 }}%</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 現在の進捗 -->
+    {% if user_stats.current_phase %}
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">現在の学習状況</h3>
+            <div class="space-y-3">
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Phase:</span>
+                    <span class="ml-2 text-sm text-gray-900">{{ user_stats.current_phase }}</span>
+                </div>
+                {% if user_stats.current_item %}
+                <div>
+                    <span class="text-sm font-medium text-gray-500">現在の項目:</span>
+                    <span class="ml-2 text-sm text-gray-900">{{ user_stats.current_item }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Phase進捗一覧 -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">カリキュラム進捗</h3>
+            <div class="space-y-4">
+                {% for phase in phases %}
+                <div class="border border-gray-200 rounded-lg p-4 {% if user_stats.current_phase.id == phase.id %}bg-blue-50 border-blue-200{% endif %}">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-md font-medium text-gray-900">{{ phase.name }}</h4>
+                            <p class="text-sm text-gray-600">標準期間: {{ phase.start_day }}日目〜{{ phase.end_day }}日目（{{ phase.total_days }}日間）</p>
+                        </div>
+                        <div class="text-right">
+                            {% if user_stats.current_phase.id == phase.id %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    学習中
+                                </span>
+                            {% elif user_stats.current_phase.phase_number > phase.phase_number %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    完了
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    未開始
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近の進捗記録 -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">最近の進捗記録</h3>
+                <a href="{% url 'progress_list' %}" class="text-sm text-primary hover:text-blue-600">全て見る →</a>
+            </div>
+            
+            {% if recent_progress %}
+                <div class="space-y-3">
+                    {% for progress in recent_progress %}
+                    <div class="border border-gray-200 rounded-lg p-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ progress.date }}</p>
+                                <p class="text-xs text-gray-600">{{ progress.current_item }} - {{ progress.study_hours }}時間</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {% if progress.current_grade == 'S' %}grade-s text-white{% elif progress.current_grade == 'A' %}grade-a text-white{% elif progress.current_grade == 'B' %}grade-b text-white{% elif progress.current_grade == 'C' %}grade-c text-white{% else %}grade-d text-white{% endif %}">
+                                    {{ progress.get_current_grade_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-500 text-center py-4">まだ進捗記録がありません。最初の記録を追加しましょう！</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
