@@ -6,11 +6,62 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 class CustomUser(AbstractUser):
     USER_TYPES = [
         ('student', '研修生'),
-        ('admin', '管理者'),
+        ('training_admin', '研修管理者'),
+        ('system_admin', 'システム管理者'),
     ]
-    user_type = models.CharField(max_length=10, choices=USER_TYPES, default='student')
+    user_type = models.CharField(max_length=15, choices=USER_TYPES, default='student')
     group = models.ForeignKey('Group', on_delete=models.SET_NULL, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True, verbose_name='研修開始日')
+    
+    # 権限フラグ
+    can_manage_students = models.BooleanField(default=False, verbose_name='研修生管理権限')
+    can_manage_curriculum = models.BooleanField(default=False, verbose_name='カリキュラム管理権限')
+    can_manage_groups = models.BooleanField(default=False, verbose_name='グループ管理権限')
+    can_view_analytics = models.BooleanField(default=False, verbose_name='分析画面閲覧権限')
+    can_manage_system = models.BooleanField(default=False, verbose_name='システム管理権限')
+    can_manage_users = models.BooleanField(default=False, verbose_name='ユーザー管理権限')
+    
+    def save(self, *args, **kwargs):
+        # ユーザータイプに基づいて権限を自動設定
+        if self.user_type == 'training_admin':
+            self.can_manage_students = True
+            self.can_manage_curriculum = True
+            self.can_manage_groups = True
+            self.can_view_analytics = True
+            self.can_manage_system = False
+            self.can_manage_users = False
+        elif self.user_type == 'system_admin':
+            self.can_manage_students = True
+            self.can_manage_curriculum = True
+            self.can_manage_groups = True
+            self.can_view_analytics = True
+            self.can_manage_system = True
+            self.can_manage_users = True
+            self.is_staff = True
+            self.is_superuser = True
+        elif self.user_type == 'student':
+            self.can_manage_students = False
+            self.can_manage_curriculum = False
+            self.can_manage_groups = False
+            self.can_view_analytics = False
+            self.can_manage_system = False
+            self.can_manage_users = False
+            self.is_staff = False
+            self.is_superuser = False
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def is_training_admin(self):
+        return self.user_type == 'training_admin'
+    
+    @property
+    def is_system_admin(self):
+        return self.user_type == 'system_admin'
+    
+    @property
+    def display_user_type(self):
+        return dict(self.USER_TYPES).get(self.user_type, self.user_type)
     
     class Meta:
         verbose_name = 'ユーザー'

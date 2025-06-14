@@ -9,6 +9,10 @@ from django.utils import timezone
 from django.db.models import Sum, Avg
 from .models import CustomUser, Group, Phase, CurriculumItem, DailyProgress, UserStats
 from .forms import DailyProgressForm, LoginForm
+from .decorators import (
+    permission_required, training_admin_required, 
+    system_admin_required, student_required
+)
 
 
 def login_view(request):
@@ -20,10 +24,16 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                if user.user_type == 'admin':
-                    return redirect('admin_dashboard')
-                else:
+                # ユーザータイプ別にリダイレクト
+                if user.user_type == 'student':
                     return redirect('student_dashboard')
+                elif user.user_type == 'training_admin':
+                    return redirect('training_admin_dashboard')
+                elif user.user_type == 'system_admin':
+                    return redirect('system_admin_dashboard')
+                else:
+                    # 旧データ対応
+                    return redirect('training_admin_dashboard')
             else:
                 messages.error(request, 'ユーザー名またはパスワードが正しくありません。')
     else:
@@ -38,11 +48,8 @@ def logout_view(request):
     return redirect('login')
 
 
-@login_required
+@student_required
 def student_dashboard(request):
-    if request.user.user_type != 'student':
-        return redirect('admin_dashboard')
-    
     user_stats, created = UserStats.objects.get_or_create(user=request.user)
     recent_progress = DailyProgress.objects.filter(user=request.user).order_by('-date')[:7]
     
@@ -54,11 +61,9 @@ def student_dashboard(request):
     return render(request, 'progress/student_dashboard.html', context)
 
 
-@login_required
-def admin_dashboard(request):
-    if request.user.user_type != 'admin':
-        return redirect('student_dashboard')
-    
+@training_admin_required
+def training_admin_dashboard(request):
+    """研修管理者専用ダッシュボード"""
     total_students = CustomUser.objects.filter(user_type='student').count()
     recent_progress = DailyProgress.objects.order_by('-date')[:10]
     
@@ -67,13 +72,52 @@ def admin_dashboard(request):
         count = UserStats.objects.filter(current_grade=grade).count()
         grade_stats[label] = count
     
+    # 研修管理者はグループと学生進捗のみ確認可能
     context = {
         'total_students': total_students,
         'recent_progress': recent_progress,
         'grade_stats': grade_stats,
         'groups': Group.objects.all(),
+        'user_type': 'training_admin'
     }
-    return render(request, 'progress/admin_dashboard.html', context)
+    return render(request, 'progress/training_admin_dashboard.html', context)
+
+
+@system_admin_required  
+def system_admin_dashboard(request):
+    """システム管理者専用ダッシュボード"""
+    total_students = CustomUser.objects.filter(user_type='student').count()
+    total_training_admins = CustomUser.objects.filter(user_type='training_admin').count()
+    total_system_admins = CustomUser.objects.filter(user_type='system_admin').count()
+    recent_progress = DailyProgress.objects.order_by('-date')[:10]
+    
+    grade_stats = {}
+    for grade, label in DailyProgress.GRADE_CHOICES:
+        count = UserStats.objects.filter(current_grade=grade).count()
+        grade_stats[label] = count
+    
+    # システム管理者は全機能にアクセス可能
+    context = {
+        'total_students': total_students,
+        'total_training_admins': total_training_admins,
+        'total_system_admins': total_system_admins,
+        'recent_progress': recent_progress,
+        'grade_stats': grade_stats,
+        'groups': Group.objects.all(),
+        'user_type': 'system_admin'
+    }
+    return render(request, 'progress/system_admin_dashboard.html', context)
+
+
+@login_required
+def admin_dashboard(request):
+    """旧admin_dashboardを適切にリダイレクト"""
+    if request.user.is_training_admin:
+        return redirect('training_admin_dashboard')
+    elif request.user.is_system_admin:
+        return redirect('system_admin_dashboard')
+    else:
+        return redirect('student_dashboard')
 
 
 @login_required
