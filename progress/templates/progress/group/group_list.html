@@ -1,0 +1,166 @@
+{% extends 'progress/base.html' %}
+{% load static %}
+
+{% block title %}グループ管理{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">グループ管理</h1>
+            <a href="{% url 'group_create' %}" 
+               class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-200">
+                新規グループ作成
+            </a>
+        </div>
+
+        {% if group_data %}
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {% for data in group_data %}
+            <div class="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition duration-300">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800">{{ data.group.name }}</h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                            作成日: {{ data.group.created_at|date:"Y/m/d" }}
+                        </p>
+                    </div>
+                    <div class="flex space-x-1">
+                        <a href="{% url 'group_edit' data.group.id %}" 
+                           class="text-blue-600 hover:text-blue-800 p-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </a>
+                        <a href="{% url 'group_delete' data.group.id %}" 
+                           class="text-red-600 hover:text-red-800 p-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                {% if data.group.description %}
+                <p class="text-gray-700 text-sm mb-4">{{ data.group.description|truncatechars:100 }}</p>
+                {% endif %}
+
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-8.196a4 4 0 110 5.292M21 21v-1a4 4 0 00-3-3.87"></path>
+                        </svg>
+                        <span class="text-sm text-gray-600">{{ data.student_count }}名</span>
+                    </div>
+                    <a href="{% url 'group_members' data.group.id %}" 
+                       class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        メンバー管理
+                    </a>
+                </div>
+
+                {% if data.students %}
+                <div class="border-t pt-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">メンバー</h4>
+                    <div class="space-y-1">
+                        {% for student in data.students|slice:":3" %}
+                        <div class="flex items-center space-x-2">
+                            <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span class="text-xs font-medium text-blue-600">
+                                    {{ student.username|first|upper }}
+                                </span>
+                            </div>
+                            <span class="text-sm text-gray-700">{{ student.username }}</span>
+                        </div>
+                        {% endfor %}
+                        {% if data.student_count > 3 %}
+                        <div class="text-xs text-gray-500 mt-1">
+                            他{{ data.student_count|add:"-3" }}名
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="border-t pt-4 text-center">
+                    <p class="text-sm text-gray-500">メンバーがいません</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 統計情報 -->
+        <div class="mt-8 bg-gray-50 rounded-lg p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">統計情報</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ total_groups }}</div>
+                    <div class="text-sm text-gray-600">総グループ数</div>
+                </div>
+                <div class="bg-white rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600">{{ total_students }}</div>
+                    <div class="text-sm text-gray-600">総研修生数</div>
+                </div>
+                <div class="bg-white rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-purple-600">{{ avg_members|floatformat:1 }}</div>
+                    <div class="text-sm text-gray-600">平均メンバー数</div>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">👥</div>
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">グループがありません</h2>
+            <p class="text-gray-600 mb-6">最初のグループを作成して研修生を管理しましょう。</p>
+            <a href="{% url 'group_create' %}" 
+               class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition duration-200">
+                グループを作成
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- クイックアクション -->
+    <div class="mt-6 bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">クイックアクション</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="{% url 'user_list' %}" 
+               class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition duration-200">
+                <div class="flex-shrink-0 mr-4">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-8.196a4 4 0 110 5.292M21 21v-1a4 4 0 00-3-3.87"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-900">ユーザー管理</h3>
+                    <p class="text-sm text-gray-600">研修生の登録・編集</p>
+                </div>
+            </a>
+            <a href="{% url 'export_menu' %}" 
+               class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition duration-200">
+                <div class="flex-shrink-0 mr-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-900">データ出力</h3>
+                    <p class="text-sm text-gray-600">CSV形式でエクスポート</p>
+                </div>
+            </a>
+            <a href="{% url 'group_ranking' %}" 
+               class="flex items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition duration-200">
+                <div class="flex-shrink-0 mr-4">
+                    <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-900">ランキング</h3>
+                    <p class="text-sm text-gray-600">グループ成績確認</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

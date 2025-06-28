@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-*zne63#6kj(spfzpm_ah$)sy=$+*q9ws@kea38kae1pxneru&0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '172.29.122.2', '0.0.0.0']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '172.29.122.2', '0.0.0.0', 'testserver', '5d35-153-240-253-154.ngrok-free.app']
 
 
 # Application definition
@@ -124,3 +124,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom user model
 AUTH_USER_MODEL = 'progress.CustomUser'
+
+# Login settings
+LOGIN_URL = '/'
+LOGIN_REDIRECT_URL = '/student/'
+LOGOUT_REDIRECT_URL = '/'
+
+# CSRF settings for ngrok
+CSRF_TRUSTED_ORIGINS = [
+    'https://5d35-153-240-253-154.ngrok-free.app',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
+
+# Security settings for ngrok
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None

@@ -1,0 +1,122 @@
+{% extends 'progress/base.html' %}
+{% load static %}
+
+{% block title %}データエクスポート{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6">データエクスポート</h1>
+        <p class="text-gray-600 mb-8">各種データをCSV形式でダウンロードできます。Excelで開くことも可能です。</p>
+
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <!-- 進捗データ -->
+            <div class="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                <div class="flex items-center mb-4">
+                    <svg class="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-blue-800">進捗記録データ</h3>
+                </div>
+                <p class="text-sm text-blue-700 mb-4">全ての日次進捗記録を含む詳細データ</p>
+                <ul class="text-xs text-blue-600 mb-6 space-y-1">
+                    <li>• 記録日・ユーザー・グループ情報</li>
+                    <li>• Phase・項目・学習時間</li>
+                    <li>• 振り返り・目標・詰まった内容</li>
+                </ul>
+                <a href="{% url 'export_progress_csv' %}" 
+                   class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 text-center block">
+                    ダウンロード
+                </a>
+            </div>
+
+            <!-- ユーザーデータ -->
+            <div class="bg-green-50 rounded-lg p-6 border border-green-200">
+                <div class="flex items-center mb-4">
+                    <svg class="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-8.196a4 4 0 110 5.292M21 21v-1a4 4 0 00-3-3.87"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-green-800">ユーザー一覧</h3>
+                </div>
+                <p class="text-sm text-green-700 mb-4">研修生の基本情報と統計データ</p>
+                <ul class="text-xs text-green-600 mb-6 space-y-1">
+                    <li>• 基本情報・所属グループ</li>
+                    <li>• 累計学習時間・現在状況</li>
+                    <li>• 階級・進捗率・経過日数</li>
+                </ul>
+                <a href="{% url 'export_users_csv' %}" 
+                   class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 text-center block">
+                    ダウンロード
+                </a>
+            </div>
+
+            <!-- グループ統計 -->
+            <div class="bg-purple-50 rounded-lg p-6 border border-purple-200">
+                <div class="flex items-center mb-4">
+                    <svg class="w-8 h-8 text-purple-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-purple-800">グループ統計</h3>
+                </div>
+                <p class="text-sm text-purple-700 mb-4">グループ別のパフォーマンス統計</p>
+                <ul class="text-xs text-purple-600 mb-6 space-y-1">
+                    <li>• グループ情報・メンバー数</li>
+                    <li>• 平均学習時間・完了率</li>
+                    <li>• 階級別人数分布</li>
+                </ul>
+                <a href="{% url 'export_groups_csv' %}" 
+                   class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 text-center block">
+                    ダウンロード
+                </a>
+            </div>
+        </div>
+
+        <!-- 分析データエクスポート -->
+        <div class="mt-8 bg-gray-50 rounded-lg p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">分析データエクスポート</h2>
+            <p class="text-gray-600 mb-6">チャート・グラフで表示されているデータをCSV形式でダウンロードできます。</p>
+            
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <a href="{% url 'export_analytics_csv' %}?type=daily_hours" 
+                   class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium py-3 px-4 rounded-lg transition duration-200 text-center">
+                    日別学習時間
+                </a>
+                <a href="{% url 'export_analytics_csv' %}?type=phase_progress" 
+                   class="bg-green-100 hover:bg-green-200 text-green-800 font-medium py-3 px-4 rounded-lg transition duration-200 text-center">
+                    Phase別進捗
+                </a>
+                <a href="{% url 'export_analytics_csv' %}?type=grade_distribution" 
+                   class="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium py-3 px-4 rounded-lg transition duration-200 text-center">
+                    階級分布
+                </a>
+                <a href="{% url 'analytics' %}" 
+                   class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-4 rounded-lg transition duration-200 text-center">
+                    分析画面へ
+                </a>
+            </div>
+        </div>
+
+        <!-- 使用方法 -->
+        <div class="mt-8 bg-blue-50 border-l-4 border-blue-400 p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">使用方法</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>ダウンロードしたCSVファイルはExcelで開くことができます</li>
+                            <li>文字化けする場合は、ExcelでUTF-8として開き直してください</li>
+                            <li>データは毎日自動的に更新されます</li>
+                            <li>管理職向けレポート作成にご活用ください</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

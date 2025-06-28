@@ -1,0 +1,75 @@
+{% extends 'progress/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<nav class="breadcrumb">
+    <a href="{% url 'training_admin_dashboard' %}">🏠 ホーム</a>
+    <span class="separator">></span>
+    <a href="{% url 'user_list' %}">👥 研修生一覧</a>
+    <span class="separator">></span>
+    <span>{{ title }}</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white shadow-xl rounded-xl border border-gray-200">
+        <div class="px-6 py-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ title }}</h2>
+            
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                <div {% if field.name == 'assigned_admin' %}id="assigned-admin-field" style="display:none;"{% endif %}>
+                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ field.label }}
+                    </label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {{ field.errors.0 }}
+                        </div>
+                    {% endif %}
+                    {% if field.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <div class="flex items-center justify-end space-x-4 pt-4">
+                    <a href="{% url 'user_list' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        キャンセル
+                    </a>
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        {% if action == 'create' %}作成{% else %}更新{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// ユーザータイプ変更時に担当者フィールドの表示/非表示を切り替え
+document.addEventListener('DOMContentLoaded', function() {
+    const userTypeField = document.getElementById('id_user_type');
+    const assignedAdminField = document.getElementById('assigned-admin-field');
+    
+    function toggleAssignedAdminField() {
+        if (userTypeField.value === 'student') {
+            assignedAdminField.style.display = 'block';
+        } else {
+            assignedAdminField.style.display = 'none';
+        }
+    }
+    
+    // 初期表示
+    toggleAssignedAdminField();
+    
+    // ユーザータイプ変更時
+    userTypeField.addEventListener('change', toggleAssignedAdminField);
+});
+</script>
+{% endblock %}

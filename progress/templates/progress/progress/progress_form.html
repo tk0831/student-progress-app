@@ -7,11 +7,13 @@
     <div class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
             <div class="mb-6">
-                <h1 class="text-2xl font-bold text-gray-900">今日の進捗記録</h1>
+                <h1 class="text-2xl font-bold text-gray-900">
+                    {% if is_edit %}進捗記録の編集{% else %}今日の進捗記録{% endif %}
+                </h1>
                 <p class="mt-1 text-sm text-gray-600">学習内容と感想を記録して、継続的な成長を追跡しましょう。</p>
             </div>
 
-            <form method="post" class="space-y-8">
+            <form method="post" class="space-y-8" enctype="multipart/form-data">
                 {% csrf_token %}
                 
                 <!-- 現在のステップ・進捗状況 -->
@@ -46,6 +48,15 @@
                             <p class="mt-1 text-sm text-red-600">{{ form.progress_detail.errors.0 }}</p>
                         {% endif %}
                     </div>
+                    
+                    <!-- 項目完了チェックボックス -->
+                    <div class="mt-4">
+                        <label class="inline-flex items-center">
+                            {{ form.item_completed }}
+                            <span class="ml-2 text-sm font-medium text-blue-700">{{ form.item_completed.label }}</span>
+                            <span class="ml-2 text-xs text-blue-600">🏆 ランキング対象</span>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- 勉強時間 -->
@@ -63,9 +74,9 @@
                     </div>
                 </div>
 
-                <!-- 詰まったポイント + Slack連携 -->
+                <!-- 詰まったポイント -->
                 <div class="border-b border-gray-200 pb-8">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">🤔 詰まったポイント + Slack連携</h3>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">🤔 詰まったポイント</h3>
                     <div class="space-y-4">
                         <div>
                             <label for="{{ form.stuck_content.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
@@ -80,7 +91,7 @@
                         <div class="flex items-center">
                             {{ form.feedback_requested }}
                             <label for="{{ form.feedback_requested.id_for_label }}" class="ml-2 block text-sm text-gray-900">
-                                {{ form.feedback_requested.label }}（チェック時、Slackに自動送信されます）
+                                {{ form.feedback_requested.label }}
                             </label>
                         </div>
                         
@@ -102,6 +113,36 @@
                                 {% if form.tried_solutions.errors %}
                                     <p class="mt-1 text-sm text-red-600">{{ form.tried_solutions.errors.0 }}</p>
                                 {% endif %}
+                            </div>
+                            
+                            <!-- ファイル添付 -->
+                            <div>
+                                <label for="{{ form.attachment_file.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.attachment_file.label }}
+                                </label>
+                                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors">
+                                    <div class="space-y-1 text-center">
+                                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                        <div class="flex text-sm text-gray-600">
+                                            <label for="{{ form.attachment_file.id_for_label }}" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                                <span>ファイルを選択</span>
+                                                {{ form.attachment_file }}
+                                            </label>
+                                            <p class="pl-1">またはドラッグ&ドロップ</p>
+                                        </div>
+                                        <p class="text-xs text-gray-500">
+                                            ZIP形式のみ、最大50MB
+                                        </p>
+                                    </div>
+                                </div>
+                                {% if form.attachment_file.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.attachment_file.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    コードファイルやスクリーンショットなどをZIP形式でまとめてアップロードできます
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -125,16 +166,6 @@
                 <div class="border-b border-gray-200 pb-8">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">🎯 次回目標</h3>
                     <div class="space-y-4">
-                        <div>
-                            <label for="{{ form.next_goal.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                {{ form.next_goal.label }} <span class="text-red-500">*</span>
-                            </label>
-                            {{ form.next_goal }}
-                            {% if form.next_goal.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.next_goal.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                        
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
                                 <label for="{{ form.next_phase.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
@@ -163,6 +194,16 @@
                             {{ form.planned_hours }}
                             {% if form.planned_hours.errors %}
                                 <p class="mt-1 text-sm text-red-600">{{ form.planned_hours.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.next_goal.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.next_goal.label }}
+                            </label>
+                            {{ form.next_goal }}
+                            {% if form.next_goal.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.next_goal.errors.0 }}</p>
                             {% endif %}
                         </div>
                     </div>
@@ -237,17 +278,70 @@
         feedbackCheckbox.addEventListener('change', toggleFeedbackDetails);
         toggleFeedbackDetails(); // 初期状態を設定
         
+        // ファイルアップロードの制御
+        const fileInput = document.getElementById('{{ form.attachment_file.id_for_label }}');
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // ファイルサイズチェック（50MB）
+                    if (file.size > 50 * 1024 * 1024) {
+                        alert('ファイルサイズは50MB以下にしてください。');
+                        e.target.value = '';
+                        return;
+                    }
+                    
+                    // ファイル拡張子チェック
+                    if (!file.name.toLowerCase().endsWith('.zip')) {
+                        alert('ZIPファイルのみアップロード可能です。');
+                        e.target.value = '';
+                        return;
+                    }
+                    
+                    // ファイル名を表示
+                    const label = e.target.closest('.space-y-1').querySelector('span');
+                    if (label) {
+                        label.textContent = file.name;
+                    }
+                }
+            });
+        }
+        
         // Phase選択時に項目を動的に更新
         const currentPhaseSelect = document.getElementById('{{ form.current_phase.id_for_label }}');
         const currentItemSelect = document.getElementById('{{ form.current_item.id_for_label }}');
         const nextPhaseSelect = document.getElementById('{{ form.next_phase.id_for_label }}');
         const nextItemSelect = document.getElementById('{{ form.next_item.id_for_label }}');
         
-        function updateItems(phaseSelect, itemSelect) {
+        function updateItems(phaseSelect, itemSelect, selectedValue = null) {
             const phaseId = phaseSelect.value;
+            const currentSelected = selectedValue || itemSelect.value;
+            
+            // 項目選択をクリア
+            itemSelect.innerHTML = '<option value="">---------</option>';
+            
             if (phaseId) {
-                // TODO: AJAX call to get items for selected phase
-                // This would require a separate view/endpoint
+                // AJAX call to get items for selected phase
+                fetch(`/api/phase-items/?phase_id=${phaseId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.items) {
+                            data.items.forEach(item => {
+                                const option = document.createElement('option');
+                                option.value = item.id;
+                                option.textContent = item.display;
+                                if (item.id.toString() === currentSelected) {
+                                    option.selected = true;
+                                }
+                                itemSelect.appendChild(option);
+                            });
+                        } else if (data.error) {
+                            console.error('Error loading items:', data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
             }
         }
         
@@ -261,6 +355,14 @@
             nextPhaseSelect.addEventListener('change', function() {
                 updateItems(nextPhaseSelect, nextItemSelect);
             });
+        }
+        
+        // ページ読み込み時に初期化
+        if (currentPhaseSelect && currentPhaseSelect.value) {
+            updateItems(currentPhaseSelect, currentItemSelect);
+        }
+        if (nextPhaseSelect && nextPhaseSelect.value) {
+            updateItems(nextPhaseSelect, nextItemSelect);
         }
     });
 </script>

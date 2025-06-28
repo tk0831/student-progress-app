@@ -1,0 +1,377 @@
+{% extends 'progress/base.html' %}
+
+{% block title %}進捗記録詳細 - {{ progress.date }}{% endblock %}
+
+{% block breadcrumb %}
+<nav class="breadcrumb">
+    <a href="{% url 'training_admin_dashboard' %}">🏠 ホーム</a>
+    <span class="separator">></span>
+    <a href="{% url 'progress_list' %}">📋 進捗一覧</a>
+    <span class="separator">></span>
+    <span>{{ progress.date }}の記録詳細</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- ヘッダーセクション -->
+    <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 overflow-hidden shadow-2xl rounded-xl">
+        <div class="px-8 py-8 sm:p-10">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-6">
+                    <div class="bg-white/20 backdrop-blur-sm rounded-full p-4 animate-pulse">
+                        <svg class="h-12 w-12 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-bold text-white">📝 進捗記録詳細</h1>
+                        <div class="mt-2 flex items-center space-x-4">
+                            <p class="text-purple-100">{{ progress.date }} - {{ progress.user.username }}</p>
+                            {% if progress.user.group %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white">
+                                    🏢 {{ progress.user.group.name }}
+                                </span>
+                            {% endif %}
+                            <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold {% if progress.current_grade == 'S' %}grade-s text-white{% elif progress.current_grade == 'A' %}grade-a text-white{% elif progress.current_grade == 'B' %}grade-b text-white{% elif progress.current_grade == 'C' %}grade-c text-white{% else %}grade-d text-white{% endif %}">
+                                {% if progress.current_grade == 'S' %}💎{% elif progress.current_grade == 'A' %}🥇{% elif progress.current_grade == 'B' %}🥈{% elif progress.current_grade == 'C' %}🥉{% else %}⚠️{% endif %}
+                                {{ progress.get_current_grade_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right space-y-2">
+                    <div class="flex space-x-2 justify-end">
+                        <a href="{% url 'progress_list' %}" class="inline-flex items-center px-4 py-2 border border-white/30 text-sm font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 transition-all duration-200">
+                            <svg class="-ml-1 mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                            </svg>
+                            一覧に戻る
+                        </a>
+                        <a href="{% url 'progress_create' %}" class="inline-flex items-center px-4 py-2 border border-white/30 text-sm font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 transition-all duration-200">
+                            <svg class="-ml-1 mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                            </svg>
+                            編集
+                        </a>
+                    </div>
+                    <div class="text-white/90 text-sm">
+                        📊 詳細分析・管理
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 基本情報 -->
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 overflow-hidden shadow-lg rounded-xl border border-blue-200">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-blue-500 rounded-full p-3 shadow-lg">
+                            <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-blue-600 truncate">🎯 Phase・項目</dt>
+                            <dd class="text-lg font-bold text-blue-900">{{ progress.current_phase.name }}</dd>
+                            <dd class="text-sm text-blue-700">{{ progress.current_item.item_code }}: {{ progress.current_item.name }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-50 to-green-100 overflow-hidden shadow-lg rounded-xl border border-green-200">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-green-500 rounded-full p-3 shadow-lg">
+                            <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-green-600 truncate">⏱️ 学習時間</dt>
+                            <dd class="text-2xl font-bold text-green-900">{{ progress.study_hours }}<span class="text-lg text-green-600">時間</span></dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 overflow-hidden shadow-lg rounded-xl border border-purple-200">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-purple-500 rounded-full p-3 shadow-lg">
+                            <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-purple-600 truncate">📅 経過日数</dt>
+                            <dd class="text-2xl font-bold text-purple-900">{{ progress.days_elapsed }}<span class="text-lg text-purple-600">日目</span></dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if progress_status %}
+        <div class="bg-gradient-to-br {% if progress_status.is_ahead %}from-blue-50 to-blue-100 border-blue-200{% elif progress_status.is_on_track %}from-green-50 to-green-100 border-green-200{% else %}from-red-50 to-red-100 border-red-200{% endif %} overflow-hidden shadow-lg rounded-xl border">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="{% if progress_status.is_ahead %}bg-blue-500{% elif progress_status.is_on_track %}bg-green-500{% else %}bg-red-500{% endif %} rounded-full p-3 shadow-lg">
+                            {% if progress_status.is_ahead %}
+                                <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            {% elif progress_status.is_on_track %}
+                                <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                            {% else %}
+                                <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="ml-4 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium {% if progress_status.is_ahead %}text-blue-600{% elif progress_status.is_on_track %}text-green-600{% else %}text-red-600{% endif %} truncate">📈 進捗状況</dt>
+                            <dd class="text-lg font-bold {% if progress_status.is_ahead %}text-blue-900{% elif progress_status.is_on_track %}text-green-900{% else %}text-red-900{% endif %}">
+                                {% if progress_status.is_ahead %}
+                                    {{ progress_status.delay_days }}日先行中
+                                {% elif progress_status.is_on_track %}
+                                    順調
+                                {% else %}
+                                    {{ progress_status.delay_days|cut:"-" }}日遅れ
+                                {% endif %}
+                            </dd>
+                            <dd class="text-sm {% if progress_status.is_ahead %}text-blue-700{% elif progress_status.is_on_track %}text-green-700{% else %}text-red-700{% endif %}">
+                                標準: {{ progress_status.expected_completion_day }}日
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 記録内容 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 今日の振り返り -->
+        <div class="bg-white shadow-xl rounded-xl border border-gray-200">
+            <div class="px-6 py-6">
+                <div class="flex items-center mb-4">
+                    <div class="bg-blue-100 rounded-full p-2 mr-3">
+                        <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900">💭 今日の振り返り</h3>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-gray-700 whitespace-pre-line">{{ progress.reflection }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 明日の目標 -->
+        <div class="bg-white shadow-xl rounded-xl border border-gray-200">
+            <div class="px-6 py-6">
+                <div class="flex items-center mb-4">
+                    <div class="bg-green-100 rounded-full p-2 mr-3">
+                        <svg class="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900">🎯 明日の目標</h3>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-gray-700 whitespace-pre-line">{{ progress.next_goal }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if progress.stuck_content or progress.feedback_requested %}
+    <!-- 困りごと・フィードバック -->
+    <div class="bg-white shadow-xl rounded-xl border border-gray-200">
+        <div class="px-6 py-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-red-100 rounded-full p-2 mr-3">
+                    <svg class="h-5 w-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900">🚨 困りごと・フィードバック要請</h3>
+                {% if progress.feedback_requested %}
+                    <span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 animate-pulse">
+                        🚨 要対応
+                    </span>
+                {% endif %}
+            </div>
+            
+            {% if progress.stuck_content %}
+            <div class="mb-4">
+                <div class="text-sm font-medium text-gray-600 mb-2">詰まった内容:</div>
+                <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+                    <p class="text-gray-700 whitespace-pre-line">{{ progress.stuck_content }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if progress.feedback_requested %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% if progress.problem_detail %}
+                <div>
+                    <div class="text-sm font-medium text-gray-600 mb-2">具体的な問題:</div>
+                    <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+                        <p class="text-gray-700 whitespace-pre-line">{{ progress.problem_detail }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if progress.tried_solutions %}
+                <div>
+                    <div class="text-sm font-medium text-gray-600 mb-2">試したこと:</div>
+                    <div class="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                        <p class="text-gray-700 whitespace-pre-line">{{ progress.tried_solutions }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 計画・その他 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 明日の計画 -->
+        <div class="bg-white shadow-xl rounded-xl border border-gray-200">
+            <div class="px-6 py-6">
+                <div class="flex items-center mb-4">
+                    <div class="bg-indigo-100 rounded-full p-2 mr-3">
+                        <svg class="h-5 w-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900">📋 明日の計画</h3>
+                </div>
+                
+                <div class="space-y-4">
+                    {% if progress.next_phase and progress.next_item %}
+                    <div>
+                        <div class="text-sm font-medium text-gray-600 mb-2">予定Phase・項目:</div>
+                        <div class="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+                            <p class="font-medium text-indigo-900">{{ progress.next_phase.name }}</p>
+                            <p class="text-sm text-indigo-700">{{ progress.next_item.item_code }}: {{ progress.next_item.name }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <div class="text-sm font-medium text-gray-600 mb-2">予定学習時間:</div>
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <p class="font-medium text-gray-900">{{ progress.planned_hours }}時間</p>
+                        </div>
+                    </div>
+
+                    {% if progress.action_plan %}
+                    <div>
+                        <div class="text-sm font-medium text-gray-600 mb-2">具体的な行動計画:</div>
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <p class="text-gray-700 whitespace-pre-line">{{ progress.action_plan }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- フラグ・状態 -->
+        <div class="bg-white shadow-xl rounded-xl border border-gray-200">
+            <div class="px-6 py-6">
+                <div class="flex items-center mb-4">
+                    <div class="bg-gray-100 rounded-full p-2 mr-3">
+                        <svg class="h-5 w-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900">🏷️ 状態・フラグ</h3>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span class="text-sm font-medium text-gray-600">復習必要</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if progress.need_review %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-600{% endif %}">
+                            {% if progress.need_review %}はい{% else %}いいえ{% endif %}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span class="text-sm font-medium text-gray-600">質問予定</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if progress.have_question %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-600{% endif %}">
+                            {% if progress.have_question %}はい{% else %}いいえ{% endif %}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span class="text-sm font-medium text-gray-600">次Phase進行予定</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if progress.next_phase_ready %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-600{% endif %}">
+                            {% if progress.next_phase_ready %}はい{% else %}いいえ{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ナビゲーション -->
+    {% if prev_progress or next_progress %}
+    <div class="bg-white shadow-xl rounded-xl border border-gray-200">
+        <div class="px-6 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    {% if prev_progress %}
+                        <a href="{% url 'progress_detail' prev_progress.id %}" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200">
+                            <svg class="-ml-1 mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ prev_progress.date }}の記録
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-500">{{ progress.user.username }}の進捗記録</p>
+                </div>
+                <div>
+                    {% if next_progress %}
+                        <a href="{% url 'progress_detail' next_progress.id %}" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200">
+                            {{ next_progress.date }}の記録
+                            <svg class="ml-2 -mr-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

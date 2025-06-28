@@ -1,0 +1,374 @@
+{% extends 'progress/base.html' %}
+{% load static %}
+
+{% block title %}進捗分析{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- ヘッダー -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold text-gray-800">進捗分析ダッシュボード</h1>
+            {% if user.user_type != 'student' %}
+            <div class="flex space-x-4">
+                <select id="userSelect" onchange="changeUser()" class="border border-gray-300 rounded-md px-3 py-2">
+                    <option value="">全体分析</option>
+                    {% for student in all_students %}
+                    <option value="{{ student.id }}" {% if student == target_user %}selected{% endif %}>
+                        {{ student.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button onclick="refreshCharts()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">
+                    更新
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- サマリー統計 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600">{{ total_progress }}</div>
+                <div class="text-sm text-blue-800">総記録日数</div>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-green-600">{{ total_hours|floatformat:1 }}h</div>
+                <div class="text-sm text-green-800">総学習時間</div>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-purple-600">{{ avg_hours|floatformat:1 }}h</div>
+                <div class="text-sm text-purple-800">平均学習時間/日</div>
+            </div>
+            {% if current_grade %}
+            <div class="bg-yellow-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-yellow-600">{{ current_grade }}級</div>
+                <div class="text-sm text-yellow-800">現在の階級</div>
+            </div>
+            {% else %}
+            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-gray-600">-</div>
+                <div class="text-sm text-gray-800">全体分析中</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- チャート選択タブ -->
+    <div class="bg-white rounded-lg shadow-md mb-6">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button onclick="switchChart('daily_hours')" 
+                        class="chart-tab active border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                        data-tab="daily_hours">
+                    日別学習時間
+                </button>
+                <button onclick="switchChart('weekly_hours')" 
+                        class="chart-tab border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                        data-tab="weekly_hours">
+                    週別推移
+                </button>
+                <button onclick="switchChart('phase_progress')" 
+                        class="chart-tab border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                        data-tab="phase_progress">
+                    Phase別状況
+                </button>
+                <button onclick="switchChart('grade_distribution')" 
+                        class="chart-tab border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                        data-tab="grade_distribution">
+                    階級分布
+                </button>
+                {% if user.user_type != 'student' %}
+                <button onclick="switchChart('group_comparison')" 
+                        class="chart-tab border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                        data-tab="group_comparison">
+                    グループ比較
+                </button>
+                {% endif %}
+            </nav>
+        </div>
+        
+        <!-- チャート表示エリア -->
+        <div class="p-6">
+            <div class="relative h-96">
+                <canvas id="analyticsChart"></canvas>
+                <div id="chartLoading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 hidden">
+                    <div class="text-center">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p class="text-gray-600">データを読み込み中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- インサイト・分析結果 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 学習パターン分析 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">学習パターン分析</h2>
+            <div id="insights" class="space-y-3">
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                    <p class="text-sm text-gray-700">チャートを選択すると分析結果が表示されます</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 推奨アクション -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">推奨アクション</h2>
+            <div id="recommendations" class="space-y-3">
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                    <p class="text-sm text-gray-700">データを分析して改善提案を表示します</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- エクスポート機能 -->
+    <div class="mt-6 bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">データエクスポート</h2>
+        <div class="flex space-x-4">
+            <button onclick="exportChart()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
+                チャートを画像として保存
+            </button>
+            <button onclick="exportData()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                データをCSVで保存
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let currentChart = null;
+let currentChartType = 'daily_hours';
+
+// ページ読み込み時に初期チャートを表示
+document.addEventListener('DOMContentLoaded', function() {
+    loadChart('daily_hours');
+});
+
+function changeUser() {
+    const select = document.getElementById('userSelect');
+    const userId = select.value;
+    const url = new URL(window.location);
+    
+    if (userId) {
+        url.searchParams.set('user_id', userId);
+    } else {
+        url.searchParams.delete('user_id');
+    }
+    
+    window.location.href = url.toString();
+}
+
+function switchChart(chartType) {
+    // タブの表示更新
+    document.querySelectorAll('.chart-tab').forEach(tab => {
+        tab.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        tab.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    const activeTab = document.querySelector(`[data-tab="${chartType}"]`);
+    activeTab.classList.remove('border-transparent', 'text-gray-500');
+    activeTab.classList.add('active', 'border-blue-500', 'text-blue-600');
+    
+    currentChartType = chartType;
+    loadChart(chartType);
+}
+
+function loadChart(chartType) {
+    showLoading();
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user_id');
+    
+    let apiUrl = `/api/analytics-data/?type=${chartType}`;
+    if (userId) {
+        apiUrl += `&user_id=${userId}`;
+    }
+    
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            renderChart(data, chartType);
+            updateInsights(chartType, data);
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error loading chart data:', error);
+            showError('データの読み込みに失敗しました');
+        });
+}
+
+function renderChart(data, chartType) {
+    const ctx = document.getElementById('analyticsChart').getContext('2d');
+    
+    if (currentChart) {
+        currentChart.destroy();
+    }
+    
+    let config = {
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: getChartTitle(chartType)
+                }
+            }
+        }
+    };
+    
+    // チャートタイプ別の設定
+    if (chartType === 'daily_hours' || chartType === 'weekly_hours') {
+        config.type = 'line';
+        config.options.scales = {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: '時間'
+                }
+            }
+        };
+    } else if (chartType === 'phase_progress' || chartType === 'grade_distribution') {
+        config.type = 'doughnut';
+        config.options.plugins.legend.position = 'right';
+    } else if (chartType === 'group_comparison') {
+        config.type = 'bar';
+        config.options.scales = {
+            y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                title: {
+                    display: true,
+                    text: '学習時間'
+                }
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: {
+                    display: true,
+                    text: '完了率 (%)'
+                },
+                grid: {
+                    drawOnChartArea: false,
+                },
+            }
+        };
+    }
+    
+    currentChart = new Chart(ctx, config);
+}
+
+function getChartTitle(chartType) {
+    const titles = {
+        'daily_hours': '過去30日間の学習時間推移',
+        'weekly_hours': '過去12週間の学習時間推移',
+        'phase_progress': 'Phase別進捗状況',
+        'grade_distribution': '階級別分布',
+        'group_comparison': 'グループ別パフォーマンス比較'
+    };
+    return titles[chartType] || '';
+}
+
+function updateInsights(chartType, data) {
+    const insights = document.getElementById('insights');
+    const recommendations = document.getElementById('recommendations');
+    
+    let insightHTML = '';
+    let recommendationHTML = '';
+    
+    // 簡単な分析ロジック（実際はより高度な分析を実装可能）
+    if (chartType === 'daily_hours') {
+        const avgHours = data.datasets[0].data.reduce((a, b) => a + b, 0) / data.datasets[0].data.length;
+        insightHTML = `
+            <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                <p class="text-sm text-gray-700">過去30日の平均学習時間: ${avgHours.toFixed(1)}時間/日</p>
+            </div>
+        `;
+        
+        if (avgHours < 2) {
+            recommendationHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 w-2 h-2 bg-red-500 rounded-full mt-2"></div>
+                    <p class="text-sm text-gray-700">学習時間が不足しています。1日3時間以上の学習を目標にしましょう。</p>
+                </div>
+            `;
+        } else if (avgHours > 5) {
+            recommendationHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                    <p class="text-sm text-gray-700">素晴らしい学習継続です！休息も忘れずに取りましょう。</p>
+                </div>
+            `;
+        } else {
+            recommendationHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                    <p class="text-sm text-gray-700">良いペースで学習が進んでいます。この調子を維持しましょう。</p>
+                </div>
+            `;
+        }
+    }
+    
+    insights.innerHTML = insightHTML || '<p class="text-sm text-gray-500">分析中...</p>';
+    recommendations.innerHTML = recommendationHTML || '<p class="text-sm text-gray-500">推奨事項を計算中...</p>';
+}
+
+function showLoading() {
+    document.getElementById('chartLoading').classList.remove('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('chartLoading').classList.add('hidden');
+}
+
+function showError(message) {
+    const insights = document.getElementById('insights');
+    insights.innerHTML = `<p class="text-sm text-red-600">${message}</p>`;
+}
+
+function refreshCharts() {
+    loadChart(currentChartType);
+}
+
+function exportChart() {
+    if (currentChart) {
+        const url = currentChart.toBase64Image();
+        const link = document.createElement('a');
+        link.download = `progress_chart_${currentChartType}.png`;
+        link.href = url;
+        link.click();
+    }
+}
+
+function exportData() {
+    const url = `/export/analytics/?type=${currentChartType}`;
+    window.open(url, '_blank');
+}
+</script>
+
+<style>
+.chart-tab.active {
+    color: #2563eb;
+    border-color: #2563eb;
+}
+</style>
+{% endblock %}

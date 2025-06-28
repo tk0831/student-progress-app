@@ -53,10 +53,30 @@
             </div>
             
             <div class="text-center">
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white text-gray-500">または</span>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <a href="{% url 'register' %}" class="w-full inline-flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                        <svg class="-ml-0.5 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/>
+                        </svg>
+                        新規登録
+                    </a>
+                </div>
+            </div>
+            
+            <div class="text-center">
                 <div class="text-sm text-gray-600">
                     <p class="mb-2"><strong>テストアカウント:</strong></p>
                     <p>管理者: admin / admin123</p>
-                    <p>研修生: （管理者が作成）</p>
+                    <p>研修生: 新規登録ボタンから作成</p>
                 </div>
             </div>
         </form>

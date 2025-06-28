@@ -1,0 +1,287 @@
+{% extends 'progress/base.html' %}
+
+{% block title %}{{ grade_display }} - 階級別研修生一覧{% endblock %}
+
+{% block breadcrumb %}
+<nav class="breadcrumb">
+    <a href="{% url 'training_admin_dashboard' %}">🏠 ホーム</a>
+    <span class="separator">></span>
+    <span>{{ grade_display }}研修生一覧</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- ヘッダーセクション -->
+    <div class="bg-gradient-to-r {% if grade == 'S' %}from-yellow-400 via-yellow-500 to-yellow-600{% elif grade == 'A' %}from-orange-400 via-orange-500 to-orange-600{% elif grade == 'B' %}from-gray-400 via-gray-500 to-gray-600{% elif grade == 'C' %}from-yellow-600 via-yellow-700 to-yellow-800{% else %}from-red-400 via-red-500 to-red-600{% endif %} overflow-hidden shadow-2xl rounded-xl">
+        <div class="px-8 py-8 sm:p-10">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-6">
+                    <div class="bg-white/20 backdrop-blur-sm rounded-full p-4 animate-pulse">
+                        {% if grade == 'S' %}
+                            <span class="text-4xl">💎</span>
+                        {% elif grade == 'A' %}
+                            <span class="text-4xl">🥇</span>
+                        {% elif grade == 'B' %}
+                            <span class="text-4xl">🥈</span>
+                        {% elif grade == 'C' %}
+                            <span class="text-4xl">🥉</span>
+                        {% else %}
+                            <span class="text-4xl">⚠️</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-bold text-white">{{ grade_display }}</h1>
+                        <p class="mt-2 text-white/80">🎯 階級別研修生一覧・詳細分析</p>
+                    </div>
+                </div>
+                <div class="text-right space-y-2">
+                    <a href="{% url 'training_admin_dashboard' %}" class="inline-flex items-center px-4 py-2 border border-white/30 text-sm font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 transition-all duration-200">
+                        <svg class="-ml-1 mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                        </svg>
+                        ダッシュボードに戻る
+                    </a>
+                    <div class="text-white/90 text-sm">
+                        👥 {{ total_users }}名の研修生
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 統計サマリー -->
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 overflow-hidden shadow-lg rounded-xl border border-blue-200">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-blue-500 rounded-full p-3 shadow-lg">
+                            <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-blue-600 truncate">👥 総人数</dt>
+                            <dd class="text-2xl font-bold text-blue-900">{{ total_users }}<span class="text-lg text-blue-600">名</span></dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-50 to-green-100 overflow-hidden shadow-lg rounded-xl border border-green-200">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-green-500 rounded-full p-3 shadow-lg">
+                            <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-green-600 truncate">📈 平均完了率</dt>
+                            <dd class="text-2xl font-bold text-green-900">{{ avg_completion|floatformat:1 }}<span class="text-lg text-green-600">%</span></dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 overflow-hidden shadow-lg rounded-xl border border-purple-200">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-purple-500 rounded-full p-3 shadow-lg">
+                            <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-purple-600 truncate">⏱️ 平均学習時間</dt>
+                            <dd class="text-2xl font-bold text-purple-900">{{ avg_hours|floatformat:0 }}<span class="text-lg text-purple-600">時間</span></dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 overflow-hidden shadow-lg rounded-xl border border-yellow-200">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-yellow-500 rounded-full p-3 shadow-lg">
+                            <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-yellow-600 truncate">📅 平均経過日数</dt>
+                            <dd class="text-2xl font-bold text-yellow-900">{{ avg_days|floatformat:0 }}<span class="text-lg text-yellow-600">日</span></dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- グループ別分布 -->
+    {% if group_distribution %}
+    <div class="bg-white shadow-xl rounded-xl border border-gray-200">
+        <div class="px-6 py-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-indigo-100 rounded-full p-2 mr-3">
+                    <svg class="h-5 w-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900">🏢 グループ別分布</h3>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for group_name, count in group_distribution.items %}
+                <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-medium text-indigo-900">{{ group_name }}</div>
+                            <div class="text-sm text-indigo-600">{{ count }}名所属</div>
+                        </div>
+                        <div class="text-2xl font-bold text-indigo-600">{{ count }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 研修生一覧 -->
+    <div class="bg-white shadow-xl rounded-xl border border-gray-200">
+        <div class="px-6 py-6">
+            <div class="flex items-center mb-6">
+                <div class="{% if grade == 'S' %}bg-yellow-100{% elif grade == 'A' %}bg-orange-100{% elif grade == 'B' %}bg-gray-100{% elif grade == 'C' %}bg-yellow-100{% else %}bg-red-100{% endif %} rounded-full p-2 mr-3">
+                    {% if grade == 'S' %}
+                        <span class="text-lg">💎</span>
+                    {% elif grade == 'A' %}
+                        <span class="text-lg">🥇</span>
+                    {% elif grade == 'B' %}
+                        <span class="text-lg">🥈</span>
+                    {% elif grade == 'C' %}
+                        <span class="text-lg">🥉</span>
+                    {% else %}
+                        <span class="text-lg">⚠️</span>
+                    {% endif %}
+                </div>
+                <h3 class="text-lg font-bold text-gray-900">👥 {{ grade_display }}研修生一覧</h3>
+            </div>
+            
+            {% if users_stats %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for stats in users_stats %}
+                    <div class="bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-lg hover:shadow-xl transform transition-all duration-200 hover:scale-105">
+                        <div class="p-6">
+                            <!-- ユーザー基本情報 -->
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center">
+                                    <div class="h-12 w-12 rounded-full bg-gradient-to-r {% if grade == 'S' %}from-yellow-400 to-yellow-500{% elif grade == 'A' %}from-orange-400 to-orange-500{% elif grade == 'B' %}from-gray-400 to-gray-500{% elif grade == 'C' %}from-yellow-600 to-yellow-700{% else %}from-red-400 to-red-500{% endif %} flex items-center justify-center mr-3">
+                                        <span class="text-white font-bold text-lg">{{ stats.user.username|first|upper }}</span>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-gray-900">{{ stats.user.username }}</div>
+                                        <div class="text-sm text-gray-500">{{ stats.user.last_name }} {{ stats.user.first_name }}</div>
+                                    </div>
+                                </div>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold {% if grade == 'S' %}grade-s text-white{% elif grade == 'A' %}grade-a text-white{% elif grade == 'B' %}grade-b text-white{% elif grade == 'C' %}grade-c text-white{% else %}grade-d text-white{% endif %}">
+                                    {{ grade }}級
+                                </span>
+                            </div>
+
+                            <!-- グループ情報 -->
+                            {% if stats.user.group %}
+                            <div class="mb-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    🏢 {{ stats.user.group.name }}
+                                </span>
+                            </div>
+                            {% endif %}
+
+                            <!-- 統計情報 -->
+                            <div class="space-y-3 mb-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">📈 完了率</span>
+                                    <span class="font-bold text-gray-900">{{ stats.completion_rate }}%</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">⏱️ 学習時間</span>
+                                    <span class="font-bold text-gray-900">{{ stats.total_study_hours }}h</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">📅 経過日数</span>
+                                    <span class="font-bold text-gray-900">{{ stats.days_elapsed }}日</span>
+                                </div>
+                                {% if stats.current_phase %}
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">🎯 現在Phase</span>
+                                    <span class="font-bold text-blue-600">Phase {{ stats.current_phase.phase_number }}</span>
+                                </div>
+                                {% endif %}
+                                {% if stats.progress_status %}
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">📈 進捗状況</span>
+                                    {% if stats.progress_status.is_ahead %}
+                                        <span class="font-bold text-blue-600">{{ stats.progress_status.delay_days }}日先行中</span>
+                                    {% elif stats.progress_status.is_on_track %}
+                                        <span class="font-bold text-green-600">順調</span>
+                                    {% elif stats.progress_status.is_behind %}
+                                        <span class="font-bold text-red-600">{{ stats.progress_status.delay_days|cut:"-" }}日遅れ</span>
+                                    {% else %}
+                                        <span class="font-bold text-gray-600">順調</span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- 進捗バー -->
+                            <div class="mb-4">
+                                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                    <span>進捗度</span>
+                                    <span>{{ stats.completion_rate }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="{% if grade == 'S' %}bg-yellow-500{% elif grade == 'A' %}bg-orange-500{% elif grade == 'B' %}bg-gray-500{% elif grade == 'C' %}bg-yellow-600{% else %}bg-red-500{% endif %} h-2 rounded-full transition-all duration-300" style="width: {{ stats.completion_rate }}%"></div>
+                                </div>
+                            </div>
+
+                            <!-- アクションボタン -->
+                            <div class="flex space-x-2">
+                                <a href="{% url 'user_detail' stats.user.id %}" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                    📊 詳細分析
+                                </a>
+                                <a href="{% url 'user_edit' stats.user.id %}" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                    ✏️ 編集
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <div class="text-6xl mb-4">
+                        {% if grade == 'S' %}💎{% elif grade == 'A' %}🥇{% elif grade == 'B' %}🥈{% elif grade == 'C' %}🥉{% else %}⚠️{% endif %}
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">{{ grade_display }}の研修生はいません</h3>
+                    <p class="text-gray-500">現在この階級に該当する研修生はいません。</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

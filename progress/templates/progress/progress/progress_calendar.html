@@ -1,0 +1,227 @@
+{% extends 'progress/base.html' %}
+{% load static %}
+
+{% block title %}進捗カレンダー{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- ヘッダー -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold text-gray-800">進捗カレンダー</h1>
+            {% if user.user_type != 'student' %}
+            <div class="flex space-x-4">
+                <select id="userSelect" onchange="changeUser()" class="border border-gray-300 rounded-md px-3 py-2">
+                    <option value="">ユーザーを選択</option>
+                    {% for student in students %}
+                    <option value="{{ student.id }}" {% if student == target_user %}selected{% endif %}>
+                        {{ student.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 月間統計 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600">{{ month_stats.total_days }}</div>
+                <div class="text-sm text-blue-800">記録日数</div>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-green-600">{{ month_stats.total_hours|floatformat:1 }}h</div>
+                <div class="text-sm text-green-800">総学習時間</div>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-purple-600">{{ month_stats.avg_hours|floatformat:1 }}h</div>
+                <div class="text-sm text-purple-800">平均学習時間</div>
+            </div>
+        </div>
+
+        <!-- 月移動ナビゲーション -->
+        <div class="flex justify-between items-center">
+            <a href="?year={{ prev_year }}&month={{ prev_month }}{% if request.GET.user_id %}&user_id={{ request.GET.user_id }}{% endif %}" 
+               class="flex items-center px-4 py-2 text-blue-600 hover:text-blue-800">
+                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                前月
+            </a>
+            <h2 class="text-xl font-semibold text-gray-800">
+                {{ year }}年 {{ month_name }}
+                {% if target_user != user %}({{ target_user.username }}){% endif %}
+            </h2>
+            <a href="?year={{ next_year }}&month={{ next_month }}{% if request.GET.user_id %}&user_id={{ request.GET.user_id }}{% endif %}" 
+               class="flex items-center px-4 py-2 text-blue-600 hover:text-blue-800">
+                次月
+                <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </a>
+        </div>
+    </div>
+
+    <!-- カレンダー -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <!-- 曜日ヘッダー -->
+        <div class="grid grid-cols-7 bg-gray-50">
+            {% for day_name in "日月火水木金土" %}
+            <div class="p-4 text-center font-semibold text-gray-700 border-r border-gray-200">
+                {{ day_name }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- カレンダー本体 -->
+        {% for week in calendar_weeks %}
+        <div class="grid grid-cols-7 border-b border-gray-200">
+            {% for day_data in week %}
+            <div class="min-h-32 border-r border-gray-200 p-2 relative
+                {% if day_data %}
+                    {% if day_data.is_today %}bg-blue-50
+                    {% elif day_data.is_future %}bg-gray-50
+                    {% elif day_data.progress %}bg-green-50
+                    {% else %}bg-red-50
+                    {% endif %}
+                {% else %}bg-gray-100
+                {% endif %}">
+                
+                {% if day_data %}
+                <!-- 日付 -->
+                <div class="text-sm font-medium text-gray-900 mb-1">
+                    {{ day_data.day }}
+                    {% if day_data.is_today %}
+                    <span class="text-blue-600">●</span>
+                    {% endif %}
+                </div>
+
+                {% if day_data.progress %}
+                <!-- 進捗あり -->
+                <div class="space-y-1">
+                    <div class="text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
+                        {{ day_data.progress.study_hours }}h
+                    </div>
+                    <div class="text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded truncate" title="{{ day_data.progress.current_item.name }}">
+                        {{ day_data.progress.current_item.item_code }}
+                    </div>
+                    {% if day_data.progress.feedback_requested %}
+                    <div class="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded animate-pulse">
+                        要FB
+                    </div>
+                    {% endif %}
+                </div>
+                {% elif not day_data.is_future %}
+                <!-- 進捗なし（過去） -->
+                <div class="text-xs text-red-600 bg-red-100 px-1 py-0.5 rounded">
+                    未記録
+                </div>
+                {% endif %}
+
+                <!-- クリック可能エリア -->
+                {% if day_data.progress %}
+                <div class="absolute inset-0 cursor-pointer hover:bg-black hover:bg-opacity-10 rounded"
+                     onclick="showProgressDetail({{ day_data.progress.id }})">
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 凡例 -->
+    <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">凡例</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div class="flex items-center space-x-2">
+                <div class="w-4 h-4 bg-blue-50 border border-blue-200 rounded"></div>
+                <span>今日</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div class="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
+                <span>記録あり</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div class="w-4 h-4 bg-red-50 border border-red-200 rounded"></div>
+                <span>未記録</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div class="w-4 h-4 bg-gray-50 border border-gray-200 rounded"></div>
+                <span>未来の日付</span>
+            </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
+            <p class="mb-2">📌 各日付に表示される情報：</p>
+            <ul class="list-disc list-inside space-y-1">
+                <li><span class="bg-green-100 text-green-800 px-1 rounded">Xh</span> = 学習時間</li>
+                <li><span class="bg-blue-100 text-blue-800 px-1 rounded">1-A</span> = 学習項目コード（ホバーで項目名表示）</li>
+                <li><span class="bg-red-100 text-red-800 px-1 rounded animate-pulse">要FB</span> = フィードバック要請あり</li>
+            </ul>
+            <p class="mt-2 text-xs">※ 各日付をクリックすると詳細が表示されます</p>
+        </div>
+    </div>
+</div>
+
+<!-- 進捗詳細モーダル -->
+<div id="progressModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-96 overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">進捗詳細</h3>
+                    <button onclick="closeProgressModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="progressModalContent">
+                    <!-- 進捗詳細がここに表示される -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function changeUser() {
+    const select = document.getElementById('userSelect');
+    const userId = select.value;
+    const url = new URL(window.location);
+    
+    if (userId) {
+        url.searchParams.set('user_id', userId);
+    } else {
+        url.searchParams.delete('user_id');
+    }
+    
+    window.location.href = url.toString();
+}
+
+function showProgressDetail(progressId) {
+    fetch(`/progress/detail/${progressId}/`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('progressModal').classList.remove('hidden');
+        document.getElementById('progressModalContent').innerHTML = html;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('progressModal').classList.remove('hidden');
+        document.getElementById('progressModalContent').innerHTML = `
+            <p class="text-red-600">詳細の読み込みに失敗しました</p>
+        `;
+    });
+}
+
+function closeProgressModal() {
+    document.getElementById('progressModal').classList.add('hidden');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% if progress_list.paginator.num_pages > 1 %}
+<div class="flex items-center justify-between mt-6">
+    <div class="flex items-center text-sm text-gray-700">
+        <span>ページ {{ progress_list.number }} / {{ progress_list.paginator.num_pages }} (総{{ progress_list.paginator.count }}件)</span>
+    </div>
+    <div class="flex space-x-2">
+        {% if progress_list.has_previous %}
+            <a href="?page={{ progress_list.previous_page_number }}" 
+               onclick="event.preventDefault(); loadProgressList({{ progress_list.previous_page_number }})"
+               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                前へ
+            </a>
+        {% endif %}
+        
+        {% for i in progress_list.paginator.page_range %}
+            {% if progress_list.number == i %}
+                <span class="px-3 py-2 text-sm bg-blue-600 text-white border border-blue-600 rounded-lg">
+                    {{ i }}
+                </span>
+            {% elif i >= progress_list.number|add:'-2' and i <= progress_list.number|add:'2' %}
+                <a href="?page={{ i }}" 
+                   onclick="event.preventDefault(); loadProgressList({{ i }})"
+                   class="px-3 py-2 text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    {{ i }}
+                </a>
+            {% elif i == 1 or i == progress_list.paginator.num_pages %}
+                <a href="?page={{ i }}" 
+                   onclick="event.preventDefault(); loadProgressList({{ i }})"
+                   class="px-3 py-2 text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    {{ i }}
+                </a>
+            {% elif i == progress_list.number|add:'-3' or i == progress_list.number|add:'3' %}
+                <span class="px-3 py-2 text-sm text-gray-500">...</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if progress_list.has_next %}
+            <a href="?page={{ progress_list.next_page_number }}" 
+               onclick="event.preventDefault(); loadProgressList({{ progress_list.next_page_number }})"
+               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                次へ
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

@@ -41,6 +41,10 @@ python manage.py runserver
 - 管理画面: http://localhost:8000/admin/
 - 管理者: admin / admin123
 
+3. **外部アクセス (ngrok使用時)**
+- ngrok URL: https://5d35-153-240-253-154.ngrok-free.app
+- 設定済み: ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS
+
 ## 🚀 主な機能
 
 ### 研修生機能
@@ -94,27 +98,67 @@ python manage.py runserver
 
 ## 🛠️ 開発者向け
 
-### 主要ファイル構造
+### プロジェクト構造
 ```
 student-progress-app/
 ├── manage.py
 ├── requirements.txt
+├── .env.example                 # 環境設定テンプレート
 ├── CLAUDE.md                    # 開発進捗記録
 ├── student_progress_project/    # Django設定
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
 ├── progress/                    # メインアプリ
 │   ├── models.py               # データベースモデル
 │   ├── views.py                # ビュー
 │   ├── forms.py                # フォーム
 │   ├── admin.py                # 管理画面設定
 │   ├── templates/              # HTMLテンプレート
+│   ├── static/                 # アプリ固有静的ファイル
 │   └── management/commands/    # カスタムコマンド
+├── tests/                      # テストファイル
+│   ├── quick_test.py           # 簡易機能テスト
+│   └── test_ranking.py         # ランキング機能テスト
+├── scripts/                    # スクリプト類
+│   ├── setup_cron.sh          # cron設定
+│   └── test_data/             # テストデータ作成
+│       └── create_test_data_for_ranking.py
+├── static/                     # プロジェクト全体静的ファイル
+├── media/                      # アップロードファイル
 └── README.md
+```
+
+### 環境設定
+```bash
+# 環境設定ファイルをコピー
+cp .env.example .env
+
+# 必要に応じて .env ファイルを編集
 ```
 
 ### カスタムコマンド
 ```bash
 # カリキュラムデータ投入
 python manage.py load_curriculum
+
+# 週間ランキング計算
+python manage.py calculate_weekly_ranking
+
+# 週次タスク実行
+python manage.py weekly_tasks
+```
+
+### テスト実行
+```bash
+# 簡易機能テスト
+python tests/quick_test.py
+
+# ランキング機能詳細テスト
+python tests/test_ranking.py
+
+# テストデータ作成
+python scripts/test_data/create_test_data_for_ranking.py
 ```
 
 ## 📱 スクリーンショット
