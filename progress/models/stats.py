@@ -481,3 +481,24 @@ class WeeklyRanking(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.week_start}週 - {self.rank}位"
+
+
+class WeeklyStudyHoursRanking(models.Model):
+    """週間学習時間ランキング記録"""
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='weekly_study_rankings')
+    week_start = models.DateField(verbose_name='週開始日')  # 月曜日
+    week_end = models.DateField(verbose_name='週終了日')    # 日曜日
+    rank = models.IntegerField(verbose_name='順位')
+    total_study_hours = models.DecimalField(max_digits=6, decimal_places=1, verbose_name='週間学習時間')
+    study_days = models.IntegerField(verbose_name='学習日数')
+    average_daily_hours = models.DecimalField(max_digits=5, decimal_places=1, verbose_name='一日平均学習時間')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = '週間学習時間ランキング'
+        verbose_name_plural = '週間学習時間ランキング'
+        unique_together = ['user', 'week_start']
+        ordering = ['-week_start', 'rank']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.week_start}週 - 学習時間{self.rank}位"

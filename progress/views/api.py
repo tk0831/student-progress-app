@@ -180,6 +180,35 @@ def analytics_data_api(request):
 
 
 @login_required
+def get_last_week_mvp(request):
+    """先週の週間MVPデータを取得するAPI"""
+    # 先週の月曜日を計算
+    today = date.today()
+    last_monday = today - timedelta(days=today.weekday() + 7)
+    
+    # 先週のランキングデータを取得
+    mvp_rankings = WeeklyRanking.objects.filter(
+        week_start=last_monday
+    ).select_related('user').order_by('rank')[:3]
+    
+    mvp_list = []
+    for ranking in mvp_rankings:
+        mvp_list.append({
+            'username': ranking.user.username,
+            'rank': ranking.rank,
+            'completed_days': ranking.completed_standard_days,
+            'efficiency': round(ranking.efficiency_score, 1),
+            'study_hours': float(ranking.total_study_hours)
+        })
+    
+    return JsonResponse({
+        'week_start': last_monday.strftime('%Y-%m-%d'),
+        'week_end': (last_monday + timedelta(days=6)).strftime('%Y-%m-%d'),
+        'mvp_list': mvp_list
+    })
+
+
+@login_required
 def get_phase_items(request):
     """Phase IDに基づいてカリキュラム項目を取得するAPI（進捗バリデーション付き）"""
     phase_id = request.GET.get('phase_id')

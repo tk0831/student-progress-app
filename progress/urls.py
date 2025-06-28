@@ -43,6 +43,7 @@ urlpatterns = [
     path('api/analytics-data/', views.analytics_data_api, name='analytics_data'),
     path('api/weekly-summary/', views.get_weekly_summary, name='weekly_summary'),
     path('api/phase-items/', views.get_phase_items, name='get_phase_items'),
+    path('api/last-week-mvp/', views.get_last_week_mvp, name='last_week_mvp'),
     
     # エクスポート
     path('export/', views.export_menu_view, name='export_menu'),

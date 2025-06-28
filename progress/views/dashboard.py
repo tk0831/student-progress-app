@@ -22,6 +22,25 @@ def get_user_weekly_rankings(user):
     return current_rankings
 
 
+def get_user_study_hours_rankings(user):
+    """指定ユーザーの週間学習時間ランキングを取得する関数"""
+    from ..models import WeeklyStudyHoursRanking
+    
+    study_rankings = []
+    for week_offset in range(4):  # 過去4週間
+        target_monday = date.today() - timedelta(days=date.today().weekday() + (week_offset * 7))
+        
+        study_ranking = WeeklyStudyHoursRanking.objects.filter(
+            user=user,
+            week_start=target_monday
+        ).first()
+        
+        if study_ranking:
+            study_rankings.append(study_ranking)
+    
+    return study_rankings
+
+
 @student_required
 def student_dashboard(request):
     user_stats, created = UserStats.objects.get_or_create(user=request.user)
@@ -30,11 +49,15 @@ def student_dashboard(request):
     # 週間ランキングを取得（受賞した場合のみ表示）
     current_rankings = get_user_weekly_rankings(request.user)
     
+    # 学習時間ランキングを取得
+    study_rankings = get_user_study_hours_rankings(request.user)
+    
     context = {
         'user_stats': user_stats,
         'recent_progress': recent_progress,
         'phases': Phase.objects.all(),
         'current_rankings': current_rankings,
+        'study_rankings': study_rankings,
     }
     return render(request, 'progress/dashboard/student_dashboard.html', context)
 

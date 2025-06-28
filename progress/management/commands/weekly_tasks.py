@@ -56,6 +56,14 @@ class Command(BaseCommand):
                         self.style.WARNING('⚠️  今週は項目完了者がいませんでした')
                     )
                 
+                # 学習時間ランキング計算
+                from django.core.management import call_command
+                self.stdout.write('📊 学習時間ランキング計算中...')
+                call_command('calculate_study_hours_ranking')
+                self.stdout.write(
+                    self.style.SUCCESS('✅ 学習時間ランキング計算完了')
+                )
+                
                 # 将来的な週次タスクをここに追加
                 # - 週間レポート生成
                 # - 遅れている研修生への通知

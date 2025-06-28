@@ -2,7 +2,7 @@ from .user import CustomUser
 from .group import Group
 from .curriculum import Phase, CurriculumItem
 from .progress import DailyProgress
-from .stats import UserStats, WeeklyRanking
+from .stats import UserStats, WeeklyRanking, WeeklyStudyHoursRanking
 
 __all__ = [
     'CustomUser',
@@ -11,5 +11,6 @@ __all__ = [
     'CurriculumItem',
     'DailyProgress',
     'UserStats',
-    'WeeklyRanking'
+    'WeeklyRanking',
+    'WeeklyStudyHoursRanking'
 ]

@@ -15,7 +15,7 @@ from .group import (
 )
 from .analytics import feedback_analytics_view, feedback_detail_view, feedback_requests_list_view
 from .export import export_data_view, export_menu_view
-from .api import get_user_weekly_rankings, get_weekly_summary, analytics_data_api, get_phase_items
+from .api import get_user_weekly_rankings, get_weekly_summary, analytics_data_api, get_phase_items, get_last_week_mvp
 
 __all__ = [
     # 認証関連
@@ -37,5 +37,5 @@ __all__ = [
     # エクスポート関連
     'export_data_view', 'export_menu_view',
     # API関連
-    'get_user_weekly_rankings', 'get_weekly_summary', 'analytics_data_api', 'get_phase_items'
+    'get_user_weekly_rankings', 'get_weekly_summary', 'analytics_data_api', 'get_phase_items', 'get_last_week_mvp'
 ]
