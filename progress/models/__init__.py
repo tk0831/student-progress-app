@@ -3,6 +3,7 @@ from .group import Group
 from .curriculum import Phase, CurriculumItem
 from .progress import DailyProgress
 from .stats import UserStats, WeeklyRanking, WeeklyStudyHoursRanking
+from .stamp import StampType, Stamp
 
 __all__ = [
     'CustomUser',
@@ -12,5 +13,7 @@ __all__ = [
     'DailyProgress',
     'UserStats',
     'WeeklyRanking',
-    'WeeklyStudyHoursRanking'
+    'WeeklyStudyHoursRanking',
+    'StampType',
+    'Stamp'
 ]

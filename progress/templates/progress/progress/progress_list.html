@@ -176,6 +176,8 @@ let currentPage = 1;
 let isLoading = false;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // スタンプ読み込み
+    loadAllStamps();
     // フィルターの変更監視
     {% if user.user_type != 'student' %}
     const filterInputs = document.querySelectorAll('#filter-form input, #filter-form select');
@@ -302,6 +304,11 @@ function updateProgressTable(data) {
                     ${progress.delay_days > 0 ? `<span class="text-red-500">(+${progress.delay_days})</span>` : ''}
                 </td>
                 <td class="whitespace-nowrap px-3 py-4 text-sm">
+                    <div class="stamp-container flex items-center space-x-1" data-progress-id="${progress.id}">
+                        <div class="text-gray-400 text-xs">読込中...</div>
+                    </div>
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm">
                     <div class="flex space-x-2">
                         <button onclick="showProgressDetail(${progress.id})" class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded hover:bg-blue-200 transition-colors">
                             <svg class="-ml-0.5 mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
@@ -331,6 +338,129 @@ function updateProgressTable(data) {
             </tr>
         `;
     }).join('');
+    
+    // スタンプを再読み込み
+    setTimeout(() => loadAllStamps(), 100);
+}
+
+function loadAllStamps() {
+    const containers = document.querySelectorAll('.stamp-container');
+    containers.forEach(container => {
+        const progressId = container.dataset.progressId;
+        if (progressId) {
+            loadStamps(progressId);
+        }
+    });
+}
+
+function loadStamps(progressId) {
+    fetch(`{% url 'get_progress_stamps' 999 %}`.replace('999', progressId))
+        .then(response => response.json())
+        .then(data => {
+            const container = document.querySelector(`.stamp-container[data-progress-id="${progressId}"]`);
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            // スタンプを表示
+            if (data.stamps.length > 0) {
+                data.stamps.forEach(stamp => {
+                    const stampEl = document.createElement('span');
+                    stampEl.className = 'text-lg cursor-pointer hover:scale-110 transition-transform';
+                    stampEl.title = `${stamp.name} by ${stamp.admin}`;
+                    stampEl.textContent = stamp.emoji;
+                    container.appendChild(stampEl);
+                });
+            }
+            
+            // 管理者の場合はスタンプ追加ボタンを表示
+            if (data.can_stamp) {
+                const addBtn = document.createElement('button');
+                addBtn.className = 'ml-1 text-gray-400 hover:text-gray-600 transition-colors';
+                addBtn.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>';
+                addBtn.onclick = () => showStampModal(progressId, data.available_stamps);
+                container.appendChild(addBtn);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading stamps:', error);
+        });
+}
+
+function showStampModal(progressId, availableStamps) {
+    // 既存のモーダルがあれば削除
+    const existingModal = document.getElementById('stamp-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // モーダルを作成
+    const modal = document.createElement('div');
+    modal.id = 'stamp-modal';
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center';
+    
+    let stampButtons = '';
+    availableStamps.forEach(stamp => {
+        stampButtons += `
+            <button onclick="addStamp(${progressId}, ${stamp.id})" 
+                    class="stamp-btn p-3 rounded-lg border-2 ${stamp.is_stamped ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} hover:border-blue-500 hover:bg-blue-50 transition-all"
+                    title="${stamp.name}">
+                <span class="text-2xl">${stamp.emoji}</span>
+                <div class="text-xs mt-1">${stamp.name}</div>
+            </button>
+        `;
+    });
+    
+    modal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">スタンプを選択</h3>
+                <button onclick="closeStampModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="grid grid-cols-4 gap-2">
+                ${stampButtons}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function closeStampModal() {
+    const modal = document.getElementById('stamp-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function addStamp(progressId, stampTypeId) {
+    const formData = new FormData();
+    formData.append('progress_id', progressId);
+    formData.append('stamp_type_id', stampTypeId);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    fetch(`{% url 'add_stamp' %}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            loadStamps(progressId);
+            closeStampModal();
+        } else {
+            showNotification(data.error || '処理に失敗しました', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('エラーが発生しました', 'error');
+    });
 }
 
 function updatePagination(data) {
@@ -413,7 +543,8 @@ function closeProgressModal() {
 function showNotification(message, type = 'info') {
     // 簡易通知機能
     const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white ${type === 'error' ? 'bg-red-600' : 'bg-blue-600'}`;
+    const bgColor = type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-green-600' : 'bg-blue-600';
+    notification.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white ${bgColor}`;
     notification.textContent = message;
     document.body.appendChild(notification);
     

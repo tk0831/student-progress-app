@@ -268,7 +268,7 @@ def user_detail_view(request, user_id):
         progress_class = 'text-red-600'
     
     context = {
-        'user': user,
+        'target_user': user,  # テンプレートで使用している変数名に合わせる
         'user_stats': user_stats,
         'progress_records': progress_records,
         'total_records': total_records,

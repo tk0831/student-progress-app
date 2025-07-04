@@ -39,11 +39,25 @@ urlpatterns = [
     path('users/<int:user_id>/edit/', views.user_update_view, name='user_edit'),
     path('users/grade/<str:grade>/', views.users_by_grade_view, name='users_by_grade'),
     
+    # システム管理者用研修編集
+    path('users/<int:user_id>/training-edit/', views.edit_user_training, name='edit_user_training'),
+    path('users/<int:user_id>/progress-history/', views.edit_progress_history, name='edit_progress_history'),
+    path('users/<int:user_id>/item-progress/', views.edit_item_progress, name='edit_item_progress'),
+    path('progress/edit/<int:progress_id>/', views.edit_progress_record, name='edit_progress_record'),
+    path('progress/system-delete/<int:progress_id>/', views.delete_progress_record, name='delete_progress_record'),
+    path('users/<int:user_id>/batch-update/', views.batch_update_progress, name='batch_update_progress'),
+    
     # API・データ
     path('api/analytics-data/', views.analytics_data_api, name='analytics_data'),
     path('api/weekly-summary/', views.get_weekly_summary, name='weekly_summary'),
     path('api/phase-items/', views.get_phase_items, name='get_phase_items'),
     path('api/last-week-mvp/', views.get_last_week_mvp, name='last_week_mvp'),
+    path('api/ajax-phase-items/', views.ajax_get_phase_items, name='ajax_get_phase_items'),
+    
+    # スタンプAPI
+    path('api/stamp/add/', views.add_stamp, name='add_stamp'),
+    path('api/stamp/progress/<int:progress_id>/', views.get_progress_stamps, name='get_progress_stamps'),
+    path('api/stamp/summary/', views.get_stamp_summary, name='get_stamp_summary'),
     
     # エクスポート
     path('export/', views.export_menu_view, name='export_menu'),

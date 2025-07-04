@@ -16,6 +16,12 @@ from .group import (
 from .analytics import feedback_analytics_view, feedback_detail_view, feedback_requests_list_view
 from .export import export_data_view, export_menu_view
 from .api import get_user_weekly_rankings, get_weekly_summary, analytics_data_api, get_phase_items, get_last_week_mvp
+from .stamp import add_stamp, get_progress_stamps, get_stamp_summary
+from .training_edit import (
+    edit_user_training, edit_progress_history, edit_progress_record,
+    delete_progress_record, ajax_get_phase_items, batch_update_progress,
+    edit_item_progress
+)
 
 __all__ = [
     # 認証関連
@@ -37,5 +43,11 @@ __all__ = [
     # エクスポート関連
     'export_data_view', 'export_menu_view',
     # API関連
-    'get_user_weekly_rankings', 'get_weekly_summary', 'analytics_data_api', 'get_phase_items', 'get_last_week_mvp'
+    'get_user_weekly_rankings', 'get_weekly_summary', 'analytics_data_api', 'get_phase_items', 'get_last_week_mvp',
+    # スタンプ関連
+    'add_stamp', 'get_progress_stamps', 'get_stamp_summary',
+    # 研修編集関連（システム管理者用）
+    'edit_user_training', 'edit_progress_history', 'edit_progress_record',
+    'delete_progress_record', 'ajax_get_phase_items', 'batch_update_progress',
+    'edit_item_progress'
 ]

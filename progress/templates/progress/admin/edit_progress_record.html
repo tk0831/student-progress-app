@@ -1,0 +1,189 @@
+{% extends 'progress/base.html' %}
+
+{% block title %}進捗記録編集 - {{ progress.date }}{% endblock %}
+
+{% block breadcrumb %}
+<nav class="breadcrumb">
+    <a href="{% url 'system_admin_dashboard' %}">🏠 ホーム</a>
+    <span class="separator">></span>
+    <a href="{% url 'user_list' %}">👥 ユーザー一覧</a>
+    <span class="separator">></span>
+    <a href="{% url 'user_detail' target_user.id %}">{{ target_user.username }}</a>
+    <span class="separator">></span>
+    <a href="{% url 'edit_progress_history' target_user.id %}">📋 進捗履歴</a>
+    <span class="separator">></span>
+    <span>📝 記録編集</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <!-- ヘッダー -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 overflow-hidden shadow-xl rounded-xl">
+        <div class="px-6 py-6">
+            <h1 class="text-2xl font-bold text-white">📝 進捗記録編集</h1>
+            <p class="mt-1 text-blue-100">{{ target_user.username }} - {{ progress.date }}</p>
+        </div>
+    </div>
+
+    <!-- 編集フォーム -->
+    <div class="bg-white shadow rounded-lg">
+        <form method="post" action="{% url 'edit_progress_record' progress.id %}">
+            {% csrf_token %}
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">記録内容の編集</h2>
+            </div>
+            
+            <div class="px-6 py-4 space-y-6">
+                <!-- 日付 -->
+                <div>
+                    <label for="{{ form.date.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.date.label }}
+                    </label>
+                    {{ form.date }}
+                    {% if form.date.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.date.errors|first }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Phase -->
+                <div>
+                    <label for="{{ form.current_phase.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.current_phase.label }}
+                    </label>
+                    {{ form.current_phase }}
+                    {% if form.current_phase.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.current_phase.errors|first }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 項目 -->
+                <div>
+                    <label for="{{ form.current_item.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.current_item.label }}
+                    </label>
+                    {{ form.current_item }}
+                    {% if form.current_item.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.current_item.errors|first }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 学習時間 -->
+                <div>
+                    <label for="{{ form.study_hours.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.study_hours.label }}
+                    </label>
+                    {{ form.study_hours }}
+                    {% if form.study_hours.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.study_hours.errors|first }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 経過日数 -->
+                <div>
+                    <label for="{{ form.days_elapsed.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.days_elapsed.label }}
+                    </label>
+                    {{ form.days_elapsed }}
+                    <p class="mt-1 text-sm text-gray-500">
+                        {% if target_user.start_date %}
+                        ※研修開始日（{{ target_user.start_date }}）からの経過日数
+                        {% else %}
+                        ※研修開始日が未設定です
+                        {% endif %}
+                    </p>
+                    {% if form.days_elapsed.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.days_elapsed.errors|first }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 項目完了 -->
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        {{ form.item_completed }}
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="{{ form.item_completed.id_for_label }}" class="font-medium text-gray-700">
+                            {{ form.item_completed.label }}
+                        </label>
+                        <p class="text-gray-500">この項目を完了済みとしてマークします</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 追加情報 -->
+            {% if progress.content or progress.reflection or progress.feedback_requested %}
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <h3 class="text-sm font-medium text-gray-900 mb-3">その他の記録内容（参考）</h3>
+                
+                {% if progress.content %}
+                <div class="mb-3">
+                    <p class="text-sm font-medium text-gray-700">学習内容:</p>
+                    <p class="text-sm text-gray-600 mt-1">{{ progress.content|linebreaks }}</p>
+                </div>
+                {% endif %}
+                
+                {% if progress.reflection %}
+                <div class="mb-3">
+                    <p class="text-sm font-medium text-gray-700">振り返り:</p>
+                    <p class="text-sm text-gray-600 mt-1">{{ progress.reflection|linebreaks }}</p>
+                </div>
+                {% endif %}
+                
+                {% if progress.feedback_requested %}
+                <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    フィードバック要請あり
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="px-6 py-4 bg-gray-50 text-right space-x-3 border-t border-gray-200">
+                <a href="{% url 'edit_progress_history' target_user.id %}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    キャンセル
+                </a>
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    変更を保存
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const phaseSelect = document.getElementById('{{ form.current_phase.id_for_label }}');
+    const itemSelect = document.getElementById('{{ form.current_item.id_for_label }}');
+    const currentItemId = '{{ progress.current_item.id }}';
+    
+    // Phase選択時に項目を更新
+    phaseSelect.addEventListener('change', function() {
+        const phaseId = this.value;
+        if (!phaseId) {
+            itemSelect.innerHTML = '<option value="">---------</option>';
+            return;
+        }
+        
+        // Ajaxで項目リストを取得
+        fetch(`{% url 'ajax_get_phase_items' %}?phase_id=${phaseId}`)
+            .then(response => response.json())
+            .then(data => {
+                itemSelect.innerHTML = '<option value="">---------</option>';
+                data.items.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.display;
+                    // 現在の項目を選択状態にする
+                    if (item.id == currentItemId) {
+                        option.selected = true;
+                    }
+                    itemSelect.appendChild(option);
+                });
+            });
+    });
+});
+</script>
+{% endblock %}

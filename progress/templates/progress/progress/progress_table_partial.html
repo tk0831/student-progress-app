@@ -11,6 +11,7 @@
                 <th scope="col" class="px-3 py-4 text-left text-xs font-bold uppercase tracking-wide text-gray-600">⏱️ 学習時間</th>
                 <th scope="col" class="px-3 py-4 text-left text-xs font-bold uppercase tracking-wide text-gray-600">🏆 階級</th>
                 <th scope="col" class="px-3 py-4 text-left text-xs font-bold uppercase tracking-wide text-gray-600">📅 経過日数</th>
+                <th scope="col" class="px-3 py-4 text-left text-xs font-bold uppercase tracking-wide text-gray-600">👍 スタンプ</th>
                 <th scope="col" class="relative py-4 pl-3 pr-6">
                     <span class="sr-only">アクション</span>
                 </th>
@@ -79,6 +80,12 @@
                         <span class="text-red-500 font-medium">(+{{ progress.delay_days }}日遅れ)</span>
                     {% endif %}
                 </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm">
+                    <div class="stamp-container flex items-center space-x-1" data-progress-id="{{ progress.id }}">
+                        <!-- スタンプがここに表示される -->
+                        <div class="text-gray-400 text-xs">読込中...</div>
+                    </div>
+                </td>
                 <td class="relative whitespace-nowrap py-4 pl-3 pr-6 text-right text-sm">
                     <div class="flex items-center space-x-2">
                         <button onclick="showProgressDetail({{ progress.id }})" class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded hover:bg-blue-200 transition-colors">
@@ -109,7 +116,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="{% if user.user_type != 'student' %}8{% else %}7{% endif %}" class="px-6 py-12 text-center text-gray-500">
+                <td colspan="{% if user.user_type != 'student' %}9{% else %}8{% endif %}" class="px-6 py-12 text-center text-gray-500">
                     <div class="text-6xl mb-4">📋</div>
                     <h3 class="text-lg font-medium text-gray-900 mb-2">進捗記録がありません</h3>
                     <p class="text-gray-500">

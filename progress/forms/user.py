@@ -1,5 +1,6 @@
 from django import forms
-from ..models import CustomUser, Group
+from django.utils import timezone
+from ..models import CustomUser, Group, Phase, CurriculumItem, DailyProgress
 
 
 class UserGroupAssignForm(forms.ModelForm):
@@ -133,3 +134,124 @@ class UserCreateForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+class UserTrainingEditForm(forms.Form):
+    """システム管理者用研修詳細編集フォーム"""
+    start_date = forms.DateField(
+        label='研修開始日',
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
+        }),
+        required=False
+    )
+    
+    current_phase = forms.ModelChoiceField(
+        label='現在のPhase',
+        queryset=Phase.objects.all(),
+        widget=forms.Select(attrs={
+            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
+        })
+    )
+    
+    current_item = forms.ModelChoiceField(
+        label='現在の項目',
+        queryset=CurriculumItem.objects.all(),
+        widget=forms.Select(attrs={
+            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
+        }),
+        required=False
+    )
+    
+    days_elapsed = forms.IntegerField(
+        label='経過日数',
+        widget=forms.NumberInput(attrs={
+            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500',
+            'min': '0'
+        }),
+        min_value=0,
+        required=False
+    )
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if user:
+            # ユーザーの現在情報を初期値として設定
+            self.fields['start_date'].initial = user.start_date
+            
+            # 最新の進捗から現在のPhaseと項目を取得
+            latest_progress = DailyProgress.objects.filter(user=user).order_by('-date').first()
+            if latest_progress:
+                self.fields['current_phase'].initial = latest_progress.current_phase
+                self.fields['current_item'].initial = latest_progress.current_item
+                self.fields['days_elapsed'].initial = latest_progress.days_elapsed
+                
+                # 現在のPhaseに基づいて項目をフィルタリング
+                if latest_progress.current_phase:
+                    self.fields['current_item'].queryset = CurriculumItem.objects.filter(
+                        phase=latest_progress.current_phase
+                    )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        current_phase = cleaned_data.get('current_phase')
+        current_item = cleaned_data.get('current_item')
+        
+        # 選択された項目が選択されたPhaseに属しているか確認
+        if current_phase and current_item:
+            if current_item.phase != current_phase:
+                raise forms.ValidationError(
+                    f'選択された項目「{current_item}」は、選択されたPhase「{current_phase}」に属していません。'
+                )
+        
+        return cleaned_data
+
+
+class ItemProgressEditForm(forms.ModelForm):
+    """個別項目の進捗編集フォーム"""
+    class Meta:
+        model = DailyProgress
+        fields = ['date', 'current_phase', 'current_item', 'study_hours', 'days_elapsed', 'item_completed']
+        widgets = {
+            'date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
+            }),
+            'current_phase': forms.Select(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
+            }),
+            'current_item': forms.Select(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
+            }),
+            'study_hours': forms.NumberInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500',
+                'step': '0.5',
+                'min': '0'
+            }),
+            'days_elapsed': forms.NumberInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500',
+                'min': '0'
+            }),
+            'item_completed': forms.CheckboxInput(attrs={
+                'class': 'rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+            })
+        }
+        labels = {
+            'date': '記録日',
+            'current_phase': 'Phase',
+            'current_item': '項目',
+            'study_hours': '学習時間',
+            'days_elapsed': '経過日数',
+            'item_completed': '項目完了'
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Phaseが選択されている場合、そのPhaseの項目のみ表示
+        if self.instance and self.instance.current_phase:
+            self.fields['current_item'].queryset = CurriculumItem.objects.filter(
+                phase=self.instance.current_phase
+            )

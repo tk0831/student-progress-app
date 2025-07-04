@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from datetime import datetime, date, timedelta
 import calendar
-from ..models import CustomUser, Group, Phase, CurriculumItem, DailyProgress, UserStats, WeeklyRanking
+from ..models import CustomUser, Group, Phase, CurriculumItem, DailyProgress, UserStats, WeeklyRanking, StampType, Stamp
 from ..forms import DailyProgressForm
 from ..decorators import permission_required, student_required
 

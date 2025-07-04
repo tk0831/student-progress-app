@@ -206,6 +206,19 @@
     </div>
     {% endif %}
 
+    <!-- スタンプサマリー -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">👍 獲得スタンプ</h3>
+            <div id="stamp-summary" class="space-y-4">
+                <div class="text-center py-4">
+                    <div class="animate-spin inline-block w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full"></div>
+                    <span class="ml-2 text-sm text-gray-500">スタンプを読み込み中...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Phase進捗一覧 -->
     <div class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
@@ -334,6 +347,8 @@
 <script>
 // 週初めログイン演出
 document.addEventListener('DOMContentLoaded', function() {
+    // スタンプサマリーを読み込む
+    loadStampSummary();
     // ねぎらいのメッセージリスト
     const weeklyMessages = [
         "先週もお疲れ様でした！今週も一緒に頑張りましょう💪",
@@ -530,6 +545,87 @@ function loadPhaseItems(phaseId) {
         .catch(error => {
             console.error('Error loading phase items:', error);
             itemsContent.innerHTML = '<div class="text-center py-4 text-red-500">項目の読み込みに失敗しました</div>';
+        });
+}
+
+// スタンプサマリーを読み込む関数
+function loadStampSummary() {
+    fetch(`{% url 'get_stamp_summary' %}`)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('stamp-summary');
+            container.innerHTML = '';
+            
+            if (data.total_stamps === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <div class="text-4xl mb-2">📭</div>
+                        <p>まだスタンプを獲得していません</p>
+                        <p class="text-sm mt-2">日々の進捗を記録して、管理者からスタンプをもらいましょう！</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // スタンプ集計表示
+            const stampCountsDiv = document.createElement('div');
+            stampCountsDiv.className = 'grid grid-cols-4 gap-3 mb-6';
+            
+            for (const [emoji, data] of Object.entries(data.stamp_counts)) {
+                const stampDiv = document.createElement('div');
+                stampDiv.className = 'text-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors';
+                stampDiv.innerHTML = `
+                    <div class="text-3xl mb-1">${emoji}</div>
+                    <div class="text-2xl font-bold text-gray-900">${data.count}</div>
+                    <div class="text-xs text-gray-600">${data.name}</div>
+                `;
+                stampCountsDiv.appendChild(stampDiv);
+            }
+            
+            container.appendChild(stampCountsDiv);
+            
+            // 合計スタンプ数
+            const totalDiv = document.createElement('div');
+            totalDiv.className = 'text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg mb-4';
+            totalDiv.innerHTML = `
+                <div class="text-lg font-semibold text-gray-900">合計獲得スタンプ数</div>
+                <div class="text-3xl font-bold text-blue-600 mt-1">${data.total_stamps}個</div>
+            `;
+            container.appendChild(totalDiv);
+            
+            // 最近のスタンプ履歴
+            if (data.recent_stamps.length > 0) {
+                const recentDiv = document.createElement('div');
+                recentDiv.className = 'mt-6';
+                recentDiv.innerHTML = '<h4 class="text-sm font-medium text-gray-700 mb-3">最近獲得したスタンプ</h4>';
+                
+                const recentList = document.createElement('div');
+                recentList.className = 'space-y-2';
+                
+                data.recent_stamps.forEach(stamp => {
+                    const stampItem = document.createElement('div');
+                    stampItem.className = 'flex items-center justify-between p-2 bg-white border border-gray-200 rounded-lg';
+                    stampItem.innerHTML = `
+                        <div class="flex items-center">
+                            <span class="text-xl mr-2">${stamp.emoji}</span>
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">${stamp.name}</span>
+                                <span class="text-xs text-gray-500 block">${stamp.date}</span>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500">by ${stamp.admin}</div>
+                    `;
+                    recentList.appendChild(stampItem);
+                });
+                
+                recentDiv.appendChild(recentList);
+                container.appendChild(recentDiv);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading stamp summary:', error);
+            const container = document.getElementById('stamp-summary');
+            container.innerHTML = '<div class="text-center py-4 text-red-500">スタンプ情報の読み込みに失敗しました</div>';
         });
 }
 </script>

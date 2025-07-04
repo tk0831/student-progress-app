@@ -1,6 +1,6 @@
 from .auth import LoginForm, UserRegistrationForm
 from .progress import DailyProgressForm
-from .user import UserCreateForm, UserGroupAssignForm
+from .user import UserCreateForm, UserGroupAssignForm, UserTrainingEditForm, ItemProgressEditForm
 from .group import GroupForm
 
 __all__ = [
@@ -12,6 +12,8 @@ __all__ = [
     # ユーザー関連
     'UserCreateForm',
     'UserGroupAssignForm',
+    'UserTrainingEditForm',
+    'ItemProgressEditForm',
     # グループ関連
     'GroupForm',
 ]
