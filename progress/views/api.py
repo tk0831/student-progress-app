@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum, Avg, Count
+from django.db.models import Sum, Avg, Count, Q
+from django.db import models
 from datetime import datetime, date, timedelta
 from ..models import CustomUser, Group, Phase, CurriculumItem, DailyProgress, UserStats, WeeklyRanking
 from ..decorators import permission_required
@@ -206,6 +207,49 @@ def get_last_week_mvp(request):
         'week_end': (last_monday + timedelta(days=6)).strftime('%Y-%m-%d'),
         'mvp_list': mvp_list
     })
+
+
+def get_current_week_mvp():
+    """今週のMVPを計算して返す関数（ビュー内で使用）"""
+    # 今週の月曜日を計算
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+    
+    # 今週の学習記録を集計
+    weekly_stats = DailyProgress.objects.filter(
+        date__gte=week_start,
+        date__lte=week_end,
+        user__user_type='student'
+    ).values('user').annotate(
+        total_hours=Sum('study_hours'),
+        study_days=Count('date', distinct=True),
+        completed_items=Count('current_item', distinct=True, filter=models.Q(item_completed=True))
+    )
+    
+    # 学習時間でソートしてTOP3を取得
+    mvp_candidates = []
+    for stat in weekly_stats:
+        try:
+            user = CustomUser.objects.select_related('stats', 'group').get(id=stat['user'])
+            if hasattr(user, 'stats') and user.stats:
+                avg_daily_hours = stat['total_hours'] / stat['study_days'] if stat['study_days'] > 0 else 0
+                mvp_candidates.append({
+                    'user': user,
+                    'username': user.username,
+                    'total_hours': float(stat['total_hours']),
+                    'study_days': stat['study_days'],
+                    'completed_items': stat['completed_items'],
+                    'avg_daily_hours': round(avg_daily_hours, 1),
+                    'current_grade': user.stats.current_grade,
+                    'group_name': user.group.name if user.group else '-'
+                })
+        except CustomUser.DoesNotExist:
+            continue
+    
+    # 学習時間でソートしてTOP3を返す
+    mvp_candidates.sort(key=lambda x: x['total_hours'], reverse=True)
+    return mvp_candidates[:3]
 
 
 @login_required

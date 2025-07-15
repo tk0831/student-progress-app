@@ -3,6 +3,7 @@ from django.db.models import Sum, Count
 from datetime import date, timedelta
 from ..models import CustomUser, Group, Phase, DailyProgress, UserStats, WeeklyRanking
 from ..decorators import student_required, permission_required
+from .api import get_current_week_mvp
 
 
 def get_user_weekly_rankings(user):
@@ -52,12 +53,16 @@ def student_dashboard(request):
     # 学習時間ランキングを取得
     study_rankings = get_user_study_hours_rankings(request.user)
     
+    # 今週のMVPを取得
+    current_week_mvp = get_current_week_mvp()
+    
     context = {
         'user_stats': user_stats,
         'recent_progress': recent_progress,
         'phases': Phase.objects.all(),
         'current_rankings': current_rankings,
         'study_rankings': study_rankings,
+        'current_week_mvp': current_week_mvp,
     }
     return render(request, 'progress/dashboard/student_dashboard.html', context)
 
@@ -73,13 +78,17 @@ def training_admin_dashboard(request):
         count = UserStats.objects.filter(current_grade=grade).count()
         grade_stats[label] = count
     
+    # 今週のMVPを取得
+    current_week_mvp = get_current_week_mvp()
+    
     # 研修管理者はグループと学生進捗のみ確認可能
     context = {
         'total_students': total_students,
         'recent_progress': recent_progress,
         'grade_stats': grade_stats,
         'groups': Group.objects.all(),
-        'user_type': 'training_admin'
+        'user_type': 'training_admin',
+        'current_week_mvp': current_week_mvp,
     }
     return render(request, 'progress/dashboard/training_admin_dashboard.html', context)
 

@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.db.models import Sum, Avg, Count, Q
 from django.core.paginator import Paginator
 from datetime import datetime, date, timedelta
+import json
 from ..models import CustomUser, Group, Phase, CurriculumItem, DailyProgress, UserStats
 from ..forms import UserCreateForm, UserGroupAssignForm
 from ..decorators import permission_required, system_admin_required
@@ -187,6 +188,7 @@ def user_detail_view(request, user_id):
     
     # 進捗記録
     progress_records = DailyProgress.objects.filter(user=user).order_by('-date')[:30]
+    recent_progress = DailyProgress.objects.filter(user=user).order_by('-date')[:10]
     
     # 統計情報
     total_records = DailyProgress.objects.filter(user=user).count()
@@ -194,90 +196,230 @@ def user_detail_view(request, user_id):
         total=Sum('study_hours'))['total'] or 0
     avg_hours = total_hours / total_records if total_records > 0 else 0
     
+    # 平均日次学習時間
+    if user.start_date:
+        days_elapsed = (date.today() - user.start_date).days + 1
+        avg_daily_hours = total_hours / days_elapsed if days_elapsed > 0 else 0
+    else:
+        avg_daily_hours = 0
+    
+    # チャート用データ（過去30日）
+    dates = []
+    daily_hours = []
+    for i in range(30):
+        target_date = date.today() - timedelta(days=29-i)
+        dates.append(target_date.strftime('%m/%d'))  # %-m/%-d is not portable
+        
+        daily_record = DailyProgress.objects.filter(
+            user=user, date=target_date
+        ).aggregate(total=Sum('study_hours'))['total'] or 0
+        daily_hours.append(float(daily_record))  # Ensure it's a float for JSON
+    
     # 曜日別学習時間（過去30日）
     weekday_stats = {}
+    weekday_names = ['月', '火', '水', '木', '金', '土', '日']
     for i in range(7):  # 0=月曜日, 6=日曜日
-        weekday_hours = DailyProgress.objects.filter(
+        weekday_records = DailyProgress.objects.filter(
             user=user,
             date__gte=date.today() - timedelta(days=30),
             date__week_day=(i + 2) % 7 + 1  # Djangoの週の始まりは日曜=1
-        ).aggregate(avg=Avg('study_hours'))['avg'] or 0
+        )
         
-        weekday_names = ['月', '火', '水', '木', '金', '土', '日']
-        weekday_stats[weekday_names[i]] = round(weekday_hours, 1)
+        avg_hours = weekday_records.aggregate(avg=Avg('study_hours'))['avg'] or 0
+        count = weekday_records.count()
+        
+        weekday_stats[i] = {
+            'name': weekday_names[i],
+            'avg_hours': round(avg_hours, 1),
+            'study_days': count
+        }
+    
+    # Phase別進捗（項目別詳細付き）
+    phase_progress = []
+    phases = Phase.objects.all().order_by('phase_number')
+    for phase in phases:
+        phase_records = DailyProgress.objects.filter(
+            user=user,
+            current_phase=phase
+        ).count()
+        
+        is_current = (user_stats.current_phase == phase)
+        
+        # 各Phaseの項目別進捗を取得
+        items_progress = []
+        items = CurriculumItem.objects.filter(phase=phase).order_by('item_code')
+        for item in items:
+            # 項目の進捗状況を確認
+            item_records = DailyProgress.objects.filter(
+                user=user,
+                current_item=item
+            )
+            
+            if item_records.exists():
+                # 完了済みかどうか
+                is_completed = item_records.filter(item_completed=True).exists()
+                # 現在学習中かどうか
+                is_current_item = (user_stats.current_item == item)
+                # 学習日数
+                study_days = item_records.count()
+                # 累計学習時間
+                total_hours = item_records.aggregate(total=Sum('study_hours'))['total'] or 0
+                
+                status = 'completed' if is_completed else ('current' if is_current_item else 'in_progress')
+            else:
+                status = 'not_started'
+                study_days = 0
+                total_hours = 0
+                is_completed = False
+                is_current_item = False
+            
+            items_progress.append({
+                'item': item,
+                'status': status,
+                'study_days': study_days,
+                'total_hours': round(total_hours, 1),
+                'is_completed': is_completed,
+                'is_current': is_current_item
+            })
+        
+        phase_progress.append({
+            'phase': phase,
+            'count': phase_records,
+            'is_current': is_current,
+            'items': items_progress
+        })
     
     # 項目別学習期間分析
-    item_analysis = []
+    item_duration_analysis = []
     completed_items = DailyProgress.objects.filter(
         user=user, item_completed=True
-    ).values('current_item', 'current_item__name', 'current_item__item_code', 
-             'current_item__estimated_days').distinct()
+    ).values('current_item').distinct()
     
     for item_data in completed_items:
-        item_id = item_data['current_item']
+        item = CurriculumItem.objects.get(id=item_data['current_item'])
         
         # 項目の開始日と終了日を取得
         item_records = DailyProgress.objects.filter(
-            user=user, current_item_id=item_id
+            user=user, current_item=item
         ).order_by('date')
         
         if item_records.exists():
             start_date = item_records.first().date
             end_date = item_records.last().date
-            actual_days = (end_date - start_date).days + 1
-            estimated_days = item_data['current_item__estimated_days'] or 1
+            duration_days = (end_date - start_date).days + 1
             
-            efficiency_ratio = estimated_days / actual_days if actual_days > 0 else 0
+            # 学習日数（実際に記録がある日数）
+            study_days = item_records.count()
+            
+            # 累計学習時間
+            total_hours = item_records.aggregate(total=Sum('study_hours'))['total'] or 0
+            avg_hours_per_day = round(total_hours / study_days, 1) if study_days > 0 else 0
+            
+            # 標準日数との比較
+            estimated_days = item.estimated_days or 1
+            delay_days = duration_days - estimated_days
+            efficiency_ratio = round(estimated_days / duration_days, 2) if duration_days > 0 else 0
             
             # 効率判定
-            if efficiency_ratio >= 1.25:
-                status = '優秀'
-                status_class = 'text-blue-600'
-            elif efficiency_ratio >= 1.0:
-                status = '良好'
-                status_class = 'text-green-600'
-            elif efficiency_ratio >= 0.67:
-                status = '標準'
-                status_class = 'text-yellow-600'
+            if duration_days <= estimated_days * 0.8:
+                status_label = '優秀'
+                status_class = 'bg-blue-100 text-blue-800'
+            elif duration_days <= estimated_days:
+                status_label = '良好'
+                status_class = 'bg-green-100 text-green-800'
+            elif duration_days <= estimated_days * 1.5:
+                status_label = '標準'
+                status_class = 'bg-yellow-100 text-yellow-800'
             else:
-                status = '要改善'
-                status_class = 'text-red-600'
+                status_label = '要改善'
+                status_class = 'bg-red-100 text-red-800'
             
-            item_analysis.append({
-                'item_code': item_data['current_item__item_code'],
-                'item_name': item_data['current_item__name'],
+            # フィードバック要請数
+            feedback_requests = DailyProgress.objects.filter(
+                user=user,
+                current_item=item,
+                feedback_requested=True
+            ).count()
+            
+            item_duration_analysis.append({
+                'item_code': item.item_code,
+                'item_name': item.name,
+                'phase_name': item.phase.name,
+                'start_date': start_date.strftime('%m/%d'),
+                'end_date': end_date.strftime('%m/%d'),
+                'duration_days': duration_days,
+                'study_days': study_days,
                 'estimated_days': estimated_days,
-                'actual_days': actual_days,
-                'efficiency_ratio': round(efficiency_ratio, 2),
-                'status': status,
-                'status_class': status_class
+                'delay_days': delay_days,
+                'abs_delay_days': abs(delay_days),
+                'efficiency_ratio': efficiency_ratio,
+                'total_hours': round(total_hours, 1),
+                'avg_hours_per_day': avg_hours_per_day,
+                'status_label': status_label,
+                'status_class': status_class,
+                'feedback_requests': feedback_requests
             })
     
-    # 進捗状況判定
+    # 分析サマリー
+    if item_duration_analysis:
+        total_items = len(item_duration_analysis)
+        excellent_good_count = sum(1 for item in item_duration_analysis 
+                                   if item['status_label'] in ['優秀', '良好'])
+        fb_request_count = sum(1 for item in item_duration_analysis 
+                               if item['feedback_requests'] > 0)
+        avg_efficiency = sum(item['efficiency_ratio'] for item in item_duration_analysis) / total_items
+        
+        analysis_summary = {
+            'total_items': total_items,
+            'excellent_good_count': excellent_good_count,
+            'fb_request_count': fb_request_count,
+            'avg_efficiency': round(avg_efficiency, 2)
+        }
+    else:
+        analysis_summary = None
+    
+    # フィードバック要請履歴
+    feedback_requests = DailyProgress.objects.filter(
+        user=user,
+        feedback_requested=True
+    ).select_related('current_item').order_by('-date')[:10]
+    
+    # 進捗状況の詳細計算
+    progress_status = user_stats.calculate_progress_status()
+    
+    # 進捗状況判定（旧版との互換性のため）
     if user_stats.delay_days > 5:
-        progress_status = '大幅先行'
+        progress_status_label = '大幅先行'
         progress_class = 'text-blue-600'
     elif user_stats.delay_days > 0:
-        progress_status = '順調'
+        progress_status_label = '順調'
         progress_class = 'text-green-600'
     elif user_stats.delay_days > -5:
-        progress_status = '注意'
+        progress_status_label = '注意'
         progress_class = 'text-yellow-600'
     else:
-        progress_status = '要改善'
+        progress_status_label = '要改善'
         progress_class = 'text-red-600'
     
     context = {
-        'target_user': user,  # テンプレートで使用している変数名に合わせる
+        'target_user': user,
         'user_stats': user_stats,
         'progress_records': progress_records,
+        'recent_progress': recent_progress,
         'total_records': total_records,
         'total_hours': total_hours,
         'avg_hours': round(avg_hours, 1),
+        'avg_daily_hours': round(avg_daily_hours, 1),
         'weekday_stats': weekday_stats,
-        'item_analysis': item_analysis,
+        'item_duration_analysis': item_duration_analysis,
+        'analysis_summary': analysis_summary,
+        'phase_progress': phase_progress,
+        'feedback_requests': feedback_requests,
         'progress_status': progress_status,
+        'progress_status_label': progress_status_label,
         'progress_class': progress_class,
+        'dates': json.dumps(dates),
+        'daily_hours': json.dumps(daily_hours),
     }
     
     return render(request, 'progress/user/user_detail.html', context)

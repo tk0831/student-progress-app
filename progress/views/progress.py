@@ -17,59 +17,79 @@ def progress_form(request):
     if request.user.user_type != 'student':
         return redirect('training_admin_dashboard')
     
-    today = timezone.now().date()
-    existing_progress = DailyProgress.objects.filter(user=request.user, date=today).first()
+    # GETパラメータから日付を取得、なければ今日の日付
+    date_param = request.GET.get('date')
+    if date_param:
+        try:
+            target_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+        except ValueError:
+            target_date = timezone.now().date()
+    else:
+        target_date = timezone.now().date()
+    
+    existing_progress = DailyProgress.objects.filter(user=request.user, date=target_date).first()
     
     if request.method == 'POST':
-        form = DailyProgressForm(request.POST, instance=existing_progress, user=request.user)
+        form = DailyProgressForm(request.POST, request.FILES, instance=existing_progress, user=request.user)
         if form.is_valid():
             progress = form.save(commit=False)
             progress.user = request.user
-            progress.date = today
+            # フォームで選択された日付を使用
+            progress_date = form.cleaned_data['date']
             
             # 経過日数を計算
             if request.user.start_date:
-                progress.days_elapsed = (today - request.user.start_date).days + 1
+                progress.days_elapsed = (progress_date - request.user.start_date).days + 1
             
-            # 次の項目に進んだ場合、前の項目を自動完了とする
-            if existing_progress:
-                previous_item = existing_progress.current_item
-                previous_phase = existing_progress.current_phase
+            # 同じ日付の既存の記録を確認
+            same_date_progress = DailyProgress.objects.filter(
+                user=request.user, 
+                date=progress_date
+            ).exclude(pk=progress.pk if progress.pk else None).first()
+            
+            if same_date_progress:
+                messages.error(request, f'{progress_date.strftime("%Y年%m月%d日")}の進捗記録は既に存在します。')
+                form = DailyProgressForm(instance=existing_progress, user=request.user)
+            else:
+                # 次の項目に進んだ場合、前の項目を自動完了とする
+                if existing_progress:
+                    previous_item = existing_progress.current_item
+                    previous_phase = existing_progress.current_phase
+                    
+                    # 項目またはPhaseが変わった場合、前の項目を完了扱いにする
+                    if (progress.current_item != previous_item or 
+                        progress.current_phase != previous_phase):
+                        
+                        # 前日までの最新記録で、前の項目の最後の記録を完了扱いにする
+                        last_previous_record = DailyProgress.objects.filter(
+                            user=request.user,
+                            current_item=previous_item,
+                            current_phase=previous_phase,
+                            date__lt=progress_date
+                        ).order_by('-date').first()
+                        
+                        if last_previous_record and not last_previous_record.item_completed:
+                            last_previous_record.item_completed = True
+                            last_previous_record.save()
                 
-                # 項目またはPhaseが変わった場合、前の項目を完了扱いにする
-                if (progress.current_item != previous_item or 
-                    progress.current_phase != previous_phase):
-                    
-                    # 前日までの最新記録で、前の項目の最後の記録を完了扱いにする
-                    last_previous_record = DailyProgress.objects.filter(
-                        user=request.user,
-                        current_item=previous_item,
-                        current_phase=previous_phase,
-                        date__lt=today
-                    ).order_by('-date').first()
-                    
-                    if last_previous_record and not last_previous_record.item_completed:
-                        last_previous_record.item_completed = True
-                        last_previous_record.save()
-            
-            progress.save()
-            
-            # ユーザー統計を更新
-            user_stats, created = UserStats.objects.get_or_create(user=request.user)
-            user_stats.total_study_hours = DailyProgress.objects.filter(
-                user=request.user
-            ).aggregate(Sum('study_hours'))['study_hours__sum'] or 0
-            user_stats.current_phase = progress.current_phase
-            user_stats.current_item = progress.current_item
-            user_stats.days_elapsed = progress.days_elapsed
-            
-            # すべての統計情報を一括更新（完了率・効率スコア・階級・遅れ状態）
-            user_stats.update_all_stats()
-            progress.current_grade = user_stats.current_grade
-            progress.save()
-            
-            messages.success(request, '進捗記録を保存しました。')
-            return redirect('student_dashboard')
+                progress.save()
+                
+                # ユーザー統計を更新
+                user_stats, created = UserStats.objects.get_or_create(user=request.user)
+                user_stats.total_study_hours = DailyProgress.objects.filter(
+                    user=request.user
+                ).aggregate(Sum('study_hours'))['study_hours__sum'] or 0
+                user_stats.current_phase = progress.current_phase
+                user_stats.current_item = progress.current_item
+                user_stats.days_elapsed = progress.days_elapsed
+                
+                # すべての統計情報を一括更新（完了率・効率スコア・階級・遅れ状態）
+                user_stats.update_all_stats()
+                progress.current_grade = user_stats.current_grade
+                progress.save()
+                
+                messages.success(request, f'{progress_date.strftime("%Y年%m月%d日")}の進捗記録を保存しました。')
+                return redirect('student_dashboard')
     else:
         form = DailyProgressForm(instance=existing_progress, user=request.user)
     
@@ -407,10 +427,20 @@ def progress_calendar(request):
         'avg_hours': sum(p.study_hours for p in progress_records) / len(progress_records) if progress_records else 0,
     }
     
-    # 管理者用：ユーザー選択肢
+    # 管理者用：ユーザー選択肢（担当者でグループ化）
     students = None
+    students_by_advisor = {}
     if request.user.user_type != 'student' and (request.user.can_view_analytics or request.user.is_system_admin):
-        students = CustomUser.objects.filter(user_type='student').order_by('username')
+        students = CustomUser.objects.filter(user_type='student').select_related('assigned_admin').order_by('assigned_admin__username', 'username')
+        
+        # 担当者でグループ化
+        for student in students:
+            advisor = student.assigned_admin
+            advisor_name = advisor.get_full_name() or advisor.username if advisor else '担当者未設定'
+            
+            if advisor_name not in students_by_advisor:
+                students_by_advisor[advisor_name] = []
+            students_by_advisor[advisor_name].append(student)
     
     context = {
         'calendar_weeks': calendar_weeks,
@@ -424,6 +454,7 @@ def progress_calendar(request):
         'next_month': next_month,
         'next_year': next_year,
         'students': students,
+        'students_by_advisor': students_by_advisor,
     }
     
     return render(request, 'progress/progress/progress_calendar.html', context)

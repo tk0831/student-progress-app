@@ -1,0 +1,45 @@
+<!-- アラートウィジェット（ダッシュボード用） -->
+{% if alerts %}
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-800">🚨 アラート</h2>
+        <a href="{% url 'alert_list' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+            全て表示 →
+        </a>
+    </div>
+    
+    <div class="space-y-3">
+        {% for alert in alerts %}
+        <div class="border-l-4 border-{{ alert.get_severity_color }}-500 bg-{{ alert.get_severity_color }}-50 p-3 rounded-r-lg">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="text-lg">{{ alert.get_severity_icon }}</span>
+                        <h3 class="text-sm font-medium text-gray-800">{{ alert.title }}</h3>
+                        <span class="px-2 py-1 text-xs rounded-full bg-{{ alert.get_severity_color }}-100 text-{{ alert.get_severity_color }}-800">
+                            {{ alert.get_severity_display }}
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 text-xs text-gray-600 mb-1">
+                        {% if user.user_type != 'student' %}
+                        <span>👤 {{ alert.user.username }}</span>
+                        {% endif %}
+                        <span>📅 {{ alert.created_at|date:"m/d H:i" }}</span>
+                    </div>
+                    
+                    <p class="text-sm text-gray-700">{{ alert.message|truncatechars:100 }}</p>
+                </div>
+                
+                <div class="ml-3">
+                    <a href="{% url 'alert_detail' alert.id %}" 
+                       class="text-blue-600 hover:text-blue-800 text-sm">
+                        詳細
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}

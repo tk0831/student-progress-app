@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-*zne63#6kj(spfzpm_ah$)sy=$+*q9ws@kea38kae1pxneru&0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '172.29.122.2', '0.0.0.0', 'testserver', '5d35-153-240-253-154.ngrok-free.app']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -136,7 +136,17 @@ CSRF_TRUSTED_ORIGINS = [
     'https://5d35-153-240-253-154.ngrok-free.app',
     'http://127.0.0.1:8000',
     'http://localhost:8000',
+    'https://569e-153-240-253-154.ngrok-free.app',
 ]
 
 # Security settings for ngrok
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+
+# Email settings for password reset
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')  # Gmailアドレス
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')  # アプリパスワード
+DEFAULT_FROM_EMAIL = os.environ.get('EMAIL_HOST_USER', 'noreply@example.com')

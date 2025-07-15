@@ -4,6 +4,7 @@ from .curriculum import Phase, CurriculumItem
 from .progress import DailyProgress
 from .stats import UserStats, WeeklyRanking, WeeklyStudyHoursRanking
 from .stamp import StampType, Stamp
+from .alerts import Alert
 
 __all__ = [
     'CustomUser',
@@ -15,5 +16,6 @@ __all__ = [
     'WeeklyRanking',
     'WeeklyStudyHoursRanking',
     'StampType',
-    'Stamp'
+    'Stamp',
+    'Alert'
 ]

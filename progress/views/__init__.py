@@ -11,7 +11,8 @@ from .user import (
 )
 from .group import (
     group_list_view, group_create_view, group_detail_view, 
-    group_ranking_view, group_update_view
+    group_ranking_view, group_update_view, group_delete_view,
+    group_members_view
 )
 from .analytics import feedback_analytics_view, feedback_detail_view, feedback_requests_list_view
 from .export import export_data_view, export_menu_view
@@ -21,6 +22,10 @@ from .training_edit import (
     edit_user_training, edit_progress_history, edit_progress_record,
     delete_progress_record, ajax_get_phase_items, batch_update_progress,
     edit_item_progress
+)
+from .alerts import (
+    alert_list_view, alert_detail_view, alert_resolve_view,
+    alert_dismiss_view, alert_widget_view
 )
 
 __all__ = [
@@ -37,7 +42,8 @@ __all__ = [
     'users_by_grade_view',
     # グループ関連
     'group_list_view', 'group_create_view', 'group_detail_view',
-    'group_ranking_view', 'group_update_view',
+    'group_ranking_view', 'group_update_view', 'group_delete_view',
+    'group_members_view',
     # 分析関連
     'feedback_analytics_view', 'feedback_detail_view', 'feedback_requests_list_view',
     # エクスポート関連
@@ -49,5 +55,8 @@ __all__ = [
     # 研修編集関連（システム管理者用）
     'edit_user_training', 'edit_progress_history', 'edit_progress_record',
     'delete_progress_record', 'ajax_get_phase_items', 'batch_update_progress',
-    'edit_item_progress'
+    'edit_item_progress',
+    # アラート関連
+    'alert_list_view', 'alert_detail_view', 'alert_resolve_view',
+    'alert_dismiss_view', 'alert_widget_view'
 ]

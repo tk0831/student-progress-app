@@ -15,8 +15,29 @@ def group_list_view(request):
         member_count=Count('customuser')
     ).order_by('name')
     
+    # グループデータを準備
+    group_data = []
+    total_students = 0
+    
+    for group in groups:
+        students = CustomUser.objects.filter(group=group, user_type='student')
+        student_count = students.count()
+        total_students += student_count
+        
+        group_data.append({
+            'group': group,
+            'student_count': student_count,
+            'students': students[:5]  # 最初の5名のみ表示
+        })
+    
+    total_groups = groups.count()
+    avg_members = total_students / total_groups if total_groups > 0 else 0
+    
     context = {
-        'groups': groups
+        'group_data': group_data,
+        'total_groups': total_groups,
+        'total_students': total_students,
+        'avg_members': avg_members
     }
     
     return render(request, 'progress/group/group_list.html', context)
@@ -95,14 +116,22 @@ def group_detail_view(request, group_id):
 @permission_required('view_analytics')
 def group_ranking_view(request):
     """グループランキング表示"""
-    groups = Group.objects.all()
+    # ソートパラメータ取得
+    sort_by = request.GET.get('sort', 'completion')
+    period_days = 30  # 集計期間
     
-    group_stats = []
+    groups = Group.objects.all()
+    ranking_data = []
+    
+    # 期間の計算
+    end_date = date.today()
+    start_date = end_date - timedelta(days=period_days)
+    
     for group in groups:
-        members = CustomUser.objects.filter(group=group, user_type='student')
-        member_count = members.count()
+        members = CustomUser.objects.filter(group=group, user_type='student').select_related('stats')
+        student_count = members.count()
         
-        if member_count > 0:
+        if student_count > 0:
             # グループ総学習時間
             total_hours = DailyProgress.objects.filter(
                 user__in=members
@@ -118,37 +147,42 @@ def group_ranking_view(request):
                     if days_elapsed > 0:
                         daily_avg_hours += member_total / days_elapsed
             
-            daily_avg_hours = daily_avg_hours / member_count if member_count > 0 else 0
+            avg_daily_hours = daily_avg_hours / student_count if student_count > 0 else 0
             
             # グループ平均完了率
             avg_completion = members.aggregate(
                 avg=Avg('stats__completion_rate'))['avg'] or 0
             
-            # 各階級の人数
-            grade_counts = {}
-            for grade, label in DailyProgress.GRADE_CHOICES:
-                count = members.filter(stats__current_grade=grade).count()
-                grade_counts[grade] = count
+            # 日報提出率計算（過去30日間）
+            total_expected_reports = student_count * period_days
+            actual_reports = DailyProgress.objects.filter(
+                user__in=members,
+                date__gte=start_date,
+                date__lte=end_date
+            ).count()
+            report_submission_rate = int((actual_reports / total_expected_reports * 100) if total_expected_reports > 0 else 0)
             
-            group_stats.append({
+            ranking_data.append({
                 'group': group,
-                'member_count': member_count,
+                'student_count': student_count,
                 'total_hours': total_hours,
-                'daily_avg_hours': round(daily_avg_hours, 1),
+                'avg_daily_hours': round(avg_daily_hours, 1),
                 'avg_completion': round(avg_completion, 1),
-                'grade_counts': grade_counts
+                'report_submission_rate': report_submission_rate
             })
     
-    # 一日平均学習時間でソート
-    group_stats.sort(key=lambda x: x['daily_avg_hours'], reverse=True)
-    
-    # ランキング順位を付与
-    for i, stat in enumerate(group_stats, 1):
-        stat['rank'] = i
+    # ソート処理
+    if sort_by == 'reports':
+        ranking_data.sort(key=lambda x: x['report_submission_rate'], reverse=True)
+    elif sort_by == 'hours':
+        ranking_data.sort(key=lambda x: x['avg_daily_hours'], reverse=True)
+    else:  # completion
+        ranking_data.sort(key=lambda x: x['avg_completion'], reverse=True)
     
     context = {
-        'group_stats': group_stats,
-        'grades': DailyProgress.GRADE_CHOICES,
+        'ranking_data': ranking_data,
+        'current_sort': sort_by,
+        'period_days': period_days,
     }
     
     return render(request, 'progress/group/group_ranking.html', context)
@@ -169,3 +203,63 @@ def group_update_view(request, group_id):
         form = GroupForm(instance=group)
     
     return render(request, 'progress/group/group_form.html', {'form': form, 'action': '更新', 'group': group})
+
+
+@permission_required('manage_groups')
+def group_delete_view(request, group_id):
+    """グループ削除"""
+    group = get_object_or_404(Group, id=group_id)
+    
+    if request.method == 'POST':
+        group_name = group.name
+        group.delete()
+        messages.success(request, f'グループ「{group_name}」を削除しました。')
+        return redirect('group_list')
+    
+    # メンバー数を確認
+    member_count = CustomUser.objects.filter(group=group).count()
+    
+    context = {
+        'group': group,
+        'member_count': member_count
+    }
+    
+    return render(request, 'progress/group/group_confirm_delete.html', context)
+
+
+@permission_required('manage_groups')
+def group_members_view(request, group_id):
+    """グループメンバー管理"""
+    group = get_object_or_404(Group, id=group_id)
+    
+    if request.method == 'POST':
+        # メンバー割り当て処理
+        user_ids = request.POST.getlist('user_ids')
+        if user_ids:
+            CustomUser.objects.filter(id__in=user_ids).update(group=group)
+            messages.success(request, f'{len(user_ids)}名をグループ「{group.name}」に追加しました。')
+        
+        # メンバー削除処理
+        remove_ids = request.POST.getlist('remove_ids')
+        if remove_ids:
+            CustomUser.objects.filter(id__in=remove_ids).update(group=None)
+            messages.success(request, f'{len(remove_ids)}名をグループから削除しました。')
+        
+        return redirect('group_members', group_id=group.id)
+    
+    # 現在のメンバー
+    members = CustomUser.objects.filter(group=group, user_type='student').select_related('stats')
+    
+    # グループ未所属の研修生
+    unassigned_students = CustomUser.objects.filter(
+        group__isnull=True, 
+        user_type='student'
+    ).select_related('stats')
+    
+    context = {
+        'group': group,
+        'members': members,
+        'unassigned_students': unassigned_students
+    }
+    
+    return render(request, 'progress/group/group_members.html', context)

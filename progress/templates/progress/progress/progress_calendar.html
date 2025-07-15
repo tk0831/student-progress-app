@@ -13,10 +13,17 @@
             <div class="flex space-x-4">
                 <select id="userSelect" onchange="changeUser()" class="border border-gray-300 rounded-md px-3 py-2">
                     <option value="">ユーザーを選択</option>
-                    {% for student in students %}
-                    <option value="{{ student.id }}" {% if student == target_user %}selected{% endif %}>
-                        {{ student.username }}
-                    </option>
+                    {% for advisor_name, student_list in students_by_advisor.items %}
+                    <optgroup label="📋 {{ advisor_name }}">
+                        {% for student in student_list %}
+                        <option value="{{ student.id }}" {% if student == target_user %}selected{% endif %}>
+                            {{ student.username }}
+                            {% if student.stats %}
+                            - {{ student.stats.get_current_grade_display }}級
+                            {% endif %}
+                        </option>
+                        {% endfor %}
+                    </optgroup>
                     {% endfor %}
                 </select>
             </div>

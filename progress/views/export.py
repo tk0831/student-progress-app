@@ -15,9 +15,10 @@ def export_menu_view(request):
 
 
 @permission_required('view_analytics')
-def export_data_view(request):
+def export_data_view(request, export_type=None):
     """データエクスポート"""
-    export_type = request.GET.get('type', 'progress')
+    if export_type is None:
+        export_type = request.GET.get('type', 'progress')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     
@@ -36,6 +37,10 @@ def export_data_view(request):
     elif export_type == 'feedback':
         filename = f'feedback_data_{today}.csv'
         return export_feedback_csv(request, filename, date_from, date_to)
+    elif export_type == 'analytics':
+        analytics_type = request.GET.get('type', 'daily_hours')
+        filename = f'analytics_{analytics_type}_{today}.csv'
+        return export_analytics_csv(request, filename, analytics_type)
     else:
         return HttpResponse('無効なエクスポートタイプです', status=400)
 
@@ -259,5 +264,82 @@ def export_feedback_csv(request, filename, date_from=None, date_to=None):
             progress.feedback_response,
             progress.feedback_provided_at.strftime('%Y/%m/%d %H:%M') if progress.feedback_provided_at else ''
         ])
+    
+    return response
+
+
+def export_analytics_csv(request, filename, analytics_type):
+    """分析データのCSVエクスポート"""
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    # BOMを追加（Excel対応）
+    response.write('\ufeff')
+    
+    writer = csv.writer(response)
+    
+    if analytics_type == 'daily_hours':
+        # 日別学習時間
+        writer.writerow(['日付', '総学習時間', '平均学習時間', '記録数'])
+        
+        daily_data = DailyProgress.objects.values('date').annotate(
+            total_hours=Sum('study_hours'),
+            avg_hours=Avg('study_hours'),
+            count=Count('id')
+        ).order_by('-date')[:30]  # 最新30日
+        
+        for data in daily_data:
+            writer.writerow([
+                data['date'].strftime('%Y/%m/%d'),
+                data['total_hours'],
+                round(data['avg_hours'], 1),
+                data['count']
+            ])
+    
+    elif analytics_type == 'phase_progress':
+        # Phase別進捗
+        writer.writerow(['Phase', '人数', '平均完了率', '平均学習時間'])
+        
+        phases = Phase.objects.all().order_by('phase_number')
+        for phase in phases:
+            users_in_phase = CustomUser.objects.filter(
+                stats__current_phase=phase, user_type='student'
+            )
+            count = users_in_phase.count()
+            
+            if count > 0:
+                avg_completion = users_in_phase.aggregate(
+                    avg=Avg('stats__completion_rate'))['avg'] or 0
+                avg_hours = DailyProgress.objects.filter(
+                    user__in=users_in_phase, current_phase=phase
+                ).aggregate(avg=Avg('study_hours'))['avg'] or 0
+            else:
+                avg_completion = 0
+                avg_hours = 0
+            
+            writer.writerow([
+                f'Phase {phase.phase_number}',
+                count,
+                f'{avg_completion:.1f}%',
+                round(avg_hours, 1)
+            ])
+    
+    elif analytics_type == 'grade_distribution':
+        # 階級分布
+        writer.writerow(['階級', '人数', '割合'])
+        
+        total_students = CustomUser.objects.filter(user_type='student').count()
+        
+        for grade, label in DailyProgress.GRADE_CHOICES:
+            count = CustomUser.objects.filter(
+                stats__current_grade=grade, user_type='student'
+            ).count()
+            percentage = (count / total_students * 100) if total_students > 0 else 0
+            
+            writer.writerow([
+                f'{grade}級 ({label})',
+                count,
+                f'{percentage:.1f}%'
+            ])
     
     return response

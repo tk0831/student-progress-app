@@ -1,0 +1,168 @@
+{% extends 'progress/base.html' %}
+{% load static %}
+
+{% block title %}アラート一覧{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">🚨 アラート一覧</h1>
+            {% if user.user_type != 'student' %}
+            <div class="flex space-x-4">
+                <button onclick="location.reload()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    🔄 更新
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if user.user_type != 'student' %}
+        <!-- 統計情報 -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-gray-600">{{ stats.total_alerts }}</div>
+                <div class="text-sm text-gray-500">全アラート</div>
+            </div>
+            <div class="bg-red-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-red-600">{{ stats.critical_alerts }}</div>
+                <div class="text-sm text-red-500">緊急</div>
+            </div>
+            <div class="bg-orange-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-orange-600">{{ stats.high_alerts }}</div>
+                <div class="text-sm text-orange-500">重要</div>
+            </div>
+            <div class="bg-yellow-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-yellow-600">{{ stats.unresolved_alerts }}</div>
+                <div class="text-sm text-yellow-500">未解決</div>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-purple-600">{{ stats.grade_risk_alerts }}</div>
+                <div class="text-sm text-purple-500">階級リスク</div>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600">{{ stats.no_report_alerts }}</div>
+                <div class="text-sm text-blue-500">日報未提出</div>
+            </div>
+        </div>
+
+        <!-- フィルター -->
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <form method="GET" class="flex flex-wrap gap-4 items-end">
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">検索</label>
+                    <input type="text" name="search" value="{{ current_filters.search }}" 
+                           placeholder="ユーザー名、タイトル、メッセージで検索"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">アラートタイプ</label>
+                    <select name="alert_type" class="px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">全て</option>
+                        {% for type_code, type_name in alert_types %}
+                        <option value="{{ type_code }}" {% if current_filters.alert_type == type_code %}selected{% endif %}>
+                            {{ type_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">重要度</label>
+                    <select name="severity" class="px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">全て</option>
+                        {% for sev_code, sev_name in severity_levels %}
+                        <option value="{{ sev_code }}" {% if current_filters.severity == sev_code %}selected{% endif %}>
+                            {{ sev_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">解決状況</label>
+                    <select name="resolved" class="px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">全て</option>
+                        <option value="false" {% if current_filters.resolved == 'false' %}selected{% endif %}>未解決</option>
+                        <option value="true" {% if current_filters.resolved == 'true' %}selected{% endif %}>解決済み</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        🔍 検索
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- アラート一覧 -->
+        {% if alerts %}
+        <div class="space-y-4">
+            {% for alert in alerts %}
+            <div class="border-l-4 border-{{ alert.get_severity_color }}-500 bg-{{ alert.get_severity_color }}-50 p-4 rounded-r-lg">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="text-2xl">{{ alert.get_severity_icon }}</span>
+                            <h3 class="text-lg font-semibold text-gray-800">{{ alert.title }}</h3>
+                            <span class="px-2 py-1 text-xs rounded-full bg-{{ alert.get_severity_color }}-100 text-{{ alert.get_severity_color }}-800">
+                                {{ alert.get_severity_display }}
+                            </span>
+                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+                                {{ alert.get_alert_type_display }}
+                            </span>
+                            {% if alert.is_resolved %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                ✅ 解決済み
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                            {% if user.user_type != 'student' %}
+                            <span>👤 {{ alert.user.username }}</span>
+                            {% endif %}
+                            <span>📅 {{ alert.created_at|date:"Y/m/d H:i" }}</span>
+                            {% if alert.resolved_at %}
+                            <span>✅ {{ alert.resolved_at|date:"Y/m/d H:i" }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <p class="text-gray-700">{{ alert.message }}</p>
+                    </div>
+                    
+                    <div class="flex space-x-2 ml-4">
+                        <a href="{% url 'alert_detail' alert.id %}" 
+                           class="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
+                            詳細
+                        </a>
+                        {% if user.user_type != 'student' and not alert.is_resolved %}
+                        <a href="{% url 'alert_resolve' alert.id %}" 
+                           class="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600">
+                            解決
+                        </a>
+                        <a href="{% url 'alert_dismiss' alert.id %}" 
+                           class="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
+                            無効化
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">✅</div>
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">アラートはありません</h2>
+            <p class="text-gray-600">
+                {% if user.user_type == 'student' %}
+                現在、あなたに対するアラートはありません。
+                {% else %}
+                現在、アクティブなアラートはありません。
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

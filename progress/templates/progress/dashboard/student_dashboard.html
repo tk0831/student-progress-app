@@ -43,6 +43,34 @@
         </div>
     </div>
 
+    <!-- 今週のMVP -->
+    {% if current_week_mvp %}
+    <div class="bg-gradient-to-r from-yellow-400 to-orange-500 overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-bold text-white mb-4">🏆 今週のトップ3</h2>
+            <div class="space-y-3">
+                {% for mvp in current_week_mvp %}
+                <div class="bg-white bg-opacity-90 rounded-lg p-3 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="flex-shrink-0">
+                            <span class="text-2xl">{% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% else %}🥉{% endif %}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">{{ mvp.username }}</p>
+                            <p class="text-xs text-gray-600">{{ mvp.group_name }} / {{ mvp.current_grade }}級</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-gray-900">{{ mvp.total_hours }}時間</p>
+                        <p class="text-xs text-gray-600">{{ mvp.study_days }}日間</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- 統計サマリー -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <!-- 現在の階級 -->
@@ -206,19 +234,6 @@
     </div>
     {% endif %}
 
-    <!-- スタンプサマリー -->
-    <div class="bg-white shadow rounded-lg">
-        <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">👍 獲得スタンプ</h3>
-            <div id="stamp-summary" class="space-y-4">
-                <div class="text-center py-4">
-                    <div class="animate-spin inline-block w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full"></div>
-                    <span class="ml-2 text-sm text-gray-500">スタンプを読み込み中...</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Phase進捗一覧 -->
     <div class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
@@ -308,6 +323,19 @@
             {% else %}
                 <p class="text-gray-500 text-center py-4">まだ進捗記録がありません。最初の記録を追加しましょう！</p>
             {% endif %}
+        </div>
+    </div>
+
+    <!-- スタンプサマリー -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">👍 獲得スタンプ</h3>
+            <div id="stamp-summary" class="space-y-4">
+                <div class="text-center py-4">
+                    <div class="animate-spin inline-block w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full"></div>
+                    <span class="ml-2 text-sm text-gray-500">スタンプを読み込み中...</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -550,8 +578,17 @@ function loadPhaseItems(phaseId) {
 
 // スタンプサマリーを読み込む関数
 function loadStampSummary() {
-    fetch(`{% url 'get_stamp_summary' %}`)
-        .then(response => response.json())
+    const url = `{% url 'get_stamp_summary' %}`;
+    console.log('Loading stamp summary from:', url);
+    
+    fetch(url)
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             const container = document.getElementById('stamp-summary');
             container.innerHTML = '';
@@ -571,13 +608,13 @@ function loadStampSummary() {
             const stampCountsDiv = document.createElement('div');
             stampCountsDiv.className = 'grid grid-cols-4 gap-3 mb-6';
             
-            for (const [emoji, data] of Object.entries(data.stamp_counts)) {
+            for (const [emoji, stampData] of Object.entries(data.stamp_counts)) {
                 const stampDiv = document.createElement('div');
                 stampDiv.className = 'text-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors';
                 stampDiv.innerHTML = `
                     <div class="text-3xl mb-1">${emoji}</div>
-                    <div class="text-2xl font-bold text-gray-900">${data.count}</div>
-                    <div class="text-xs text-gray-600">${data.name}</div>
+                    <div class="text-2xl font-bold text-gray-900">${stampData.count}</div>
+                    <div class="text-xs text-gray-600">${stampData.name}</div>
                 `;
                 stampCountsDiv.appendChild(stampDiv);
             }
@@ -625,7 +662,17 @@ function loadStampSummary() {
         .catch(error => {
             console.error('Error loading stamp summary:', error);
             const container = document.getElementById('stamp-summary');
-            container.innerHTML = '<div class="text-center py-4 text-red-500">スタンプ情報の読み込みに失敗しました</div>';
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="text-red-500 font-semibold">スタンプ情報の読み込みに失敗しました</div>
+                        <div class="text-sm text-gray-600 mt-2">エラー: ${error.message}</div>
+                        <button onclick="loadStampSummary()" class="mt-3 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">
+                            再読み込み
+                        </button>
+                    </div>
+                `;
+            }
         });
 }
 </script>

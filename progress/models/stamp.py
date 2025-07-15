@@ -50,8 +50,8 @@ class Stamp(models.Model):
         ordering = ['-created_at']
         verbose_name = 'スタンプ'
         verbose_name_plural = 'スタンプ'
-        # 同じ管理者が同じ日報に同じスタンプを複数回押せないようにする
-        unique_together = [['daily_progress', 'stamp_type', 'admin_user']]
+        # 同じ管理者が同じ日報に複数のスタンプを押せないようにする（一人一投稿一スタンプ）
+        unique_together = [['daily_progress', 'admin_user']]
     
     def __str__(self):
         return f"{self.stamp_type} on {self.daily_progress} by {self.admin_user}"

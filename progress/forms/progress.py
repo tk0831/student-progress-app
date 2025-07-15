@@ -1,4 +1,6 @@
 from django import forms
+from django.utils import timezone
+from datetime import date
 from ..models import DailyProgress, Phase, CurriculumItem
 
 
@@ -6,7 +8,7 @@ class DailyProgressForm(forms.ModelForm):
     class Meta:
         model = DailyProgress
         fields = [
-            'current_phase', 'current_item', 'progress_detail',
+            'date', 'current_phase', 'current_item', 'progress_detail',
             'study_hours', 'stuck_content', 'feedback_requested',
             'problem_detail', 'tried_solutions', 'attachment_file', 'reflection',
             'next_phase', 'next_item', 'planned_hours', 'next_goal',
@@ -14,6 +16,10 @@ class DailyProgressForm(forms.ModelForm):
             'item_completed'
         ]
         widgets = {
+            'date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
             'current_phase': forms.Select(attrs={'class': 'form-control'}),
             'current_item': forms.Select(attrs={'class': 'form-control'}),
             'progress_detail': forms.Textarea(attrs={
@@ -84,6 +90,7 @@ class DailyProgressForm(forms.ModelForm):
             'item_completed': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
+            'date': '実施日',
             'current_phase': '現在のPhase',
             'current_item': '現在の項目',
             'progress_detail': '進捗詳細',
@@ -108,6 +115,10 @@ class DailyProgressForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # 日付のデフォルト値を今日に設定
+        if not self.instance.pk:  # 新規作成時のみ
+            self.fields['date'].initial = date.today()
         
         # next_goalを任意にする
         self.fields['next_goal'].required = False

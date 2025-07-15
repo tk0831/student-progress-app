@@ -22,22 +22,48 @@ def add_stamp(request):
         progress = get_object_or_404(DailyProgress, id=progress_id)
         stamp_type = get_object_or_404(StampType, id=stamp_type_id, is_active=True)
         
-        # 既存のスタンプをチェック
-        stamp, created = Stamp.objects.get_or_create(
+        # 既に同じ進捗に対してスタンプを押しているかチェック
+        existing_stamp = Stamp.objects.filter(
+            daily_progress=progress,
+            admin_user=request.user
+        ).first()
+        
+        if existing_stamp:
+            if existing_stamp.stamp_type == stamp_type:
+                # 同じスタンプの場合は削除（トグル動作）
+                existing_stamp.delete()
+                return JsonResponse({
+                    'success': True,
+                    'action': 'removed',
+                    'message': f'{stamp_type.emoji} を取り消しました'
+                })
+            else:
+                # 異なるスタンプの場合は置き換え
+                old_emoji = existing_stamp.stamp_type.emoji
+                existing_stamp.stamp_type = stamp_type
+                existing_stamp.created_at = timezone.now()
+                existing_stamp.save()
+                return JsonResponse({
+                    'success': True,
+                    'action': 'replaced',
+                    'message': f'{old_emoji} を {stamp_type.emoji} に変更しました',
+                    'stamp': {
+                        'id': existing_stamp.id,
+                        'emoji': stamp_type.emoji,
+                        'name': stamp_type.name,
+                        'color': stamp_type.color,
+                        'admin': existing_stamp.admin_user.username,
+                        'created_at': existing_stamp.created_at.strftime('%Y-%m-%d %H:%M')
+                    }
+                })
+        
+        # 新規作成
+        stamp = Stamp.objects.create(
             daily_progress=progress,
             stamp_type=stamp_type,
             admin_user=request.user,
-            defaults={'created_at': timezone.now()}
+            created_at=timezone.now()
         )
-        
-        if not created:
-            # 既に押されている場合は削除（トグル動作）
-            stamp.delete()
-            return JsonResponse({
-                'success': True,
-                'action': 'removed',
-                'message': f'{stamp_type.emoji} を取り消しました'
-            })
         
         return JsonResponse({
             'success': True,
@@ -79,6 +105,9 @@ def get_progress_stamps(request, progress_id):
             'created_at': stamp.created_at.strftime('%Y-%m-%d %H:%M')
         })
     
+    # 現在のユーザーが押したスタンプを取得
+    user_stamp = stamps.filter(admin_user=request.user).first() if request.user.user_type != 'student' else None
+    
     # 利用可能なスタンプタイプも返す
     available_stamps = []
     if request.user.user_type != 'student':
@@ -88,13 +117,18 @@ def get_progress_stamps(request, progress_id):
                 'emoji': stamp_type.emoji,
                 'name': stamp_type.name,
                 'color': stamp_type.color,
-                'is_stamped': stamps.filter(stamp_type=stamp_type, admin_user=request.user).exists()
+                'is_stamped': user_stamp and user_stamp.stamp_type.id == stamp_type.id
             })
     
     return JsonResponse({
         'stamps': stamp_data,
         'available_stamps': available_stamps,
-        'can_stamp': request.user.user_type != 'student'
+        'can_stamp': request.user.user_type != 'student',
+        'user_stamp': {
+            'emoji': user_stamp.stamp_type.emoji,
+            'name': user_stamp.stamp_type.name,
+            'id': user_stamp.stamp_type.id
+        } if user_stamp else None
     })
 
 
